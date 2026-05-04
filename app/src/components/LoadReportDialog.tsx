@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Button, CTAButton } from "./ui/Button";
 import { Card } from "./ui/Card";
+import { Logo } from "./ui/Logo";
 import { isProbeReport, listReports, saveReport, setActiveReport, deleteReport } from "../lib/storage";
 import type { ProbeReport } from "../types";
 
@@ -49,7 +50,10 @@ export function LoadReportDialog({ open, onClose, onLoaded, onUseMock }: LoadRep
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 border-b border-[var(--color-border)] flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-heading">Load Probe Report</h2>
+          <div className="flex items-center gap-3">
+            <Logo size={32} />
+            <h2 className="text-lg font-semibold text-heading">Load Probe Report</h2>
+          </div>
           <button
             onClick={onClose}
             aria-label="close"

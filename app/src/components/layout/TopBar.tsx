@@ -1,5 +1,6 @@
 import { CTAButton } from "../ui/Button";
 import { DotBadge } from "../ui/Badge";
+import { Logo } from "../ui/Logo";
 import { ShareButton } from "../ShareButton";
 import type { ProbeReport, TabId } from "../../types";
 
@@ -25,9 +26,12 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
     <header className="shrink-0 bg-surface border-b border-[var(--color-border)] flex flex-col">
       {/* Brand row */}
       <div className="flex items-center justify-between px-6 pt-4 pb-2">
-        <span className="text-base font-semibold text-heading tracking-tight">
-          Legal Growth Dashboard
-        </span>
+        <div className="flex items-center gap-3">
+          <Logo size={36} />
+          <span className="text-base font-semibold text-heading tracking-tight">
+            Legal Growth Dashboard
+          </span>
+        </div>
         <div className="flex items-center gap-3">
           {callStatus === "active" && (
             <DotBadge color="green" label="Closer Call Active" />

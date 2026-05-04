@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card } from "../ui/Card";
 import { CTAButton, Button } from "../ui/Button";
 import { ShareButton } from "../ShareButton";
+import { Logo } from "../ui/Logo";
 import type { PackageRecommendation, ProbeReport } from "../../types";
 
 const PACKAGE_LABELS: Record<string, string> = {
@@ -40,9 +41,7 @@ export function FirmBriefing({ report, recommendation }: FirmBriefingProps) {
       {/* Header */}
       <header className="px-4 py-4 border-b border-[var(--color-border)] bg-surface flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-heading flex items-center justify-center">
-            <span className="text-white text-xs font-bold">LG</span>
-          </div>
+          <Logo size={28} />
           <span className="font-semibold text-sm text-heading">Firm Briefing</span>
         </div>
         <div className="flex items-center gap-2">

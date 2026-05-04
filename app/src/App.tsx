@@ -3,6 +3,7 @@ import { AppShell } from "./components/layout/AppShell";
 import { FirmBriefing } from "./components/mobile/FirmBriefing";
 import { EmptyState } from "./components/EmptyState";
 import { LoadReportDialog } from "./components/LoadReportDialog";
+import { Logo } from "./components/ui/Logo";
 import { MOCK_REPORT, MOCK_SESSION } from "./data/mock";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { recommendPackage } from "./lib/packages";
@@ -56,7 +57,8 @@ export default function App() {
 
   if (loadingHash) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-surface">
+        <Logo variant="full" size={96} className="animate-pulse" />
         <p className="text-sm text-subtle">Loading…</p>
       </div>
     );

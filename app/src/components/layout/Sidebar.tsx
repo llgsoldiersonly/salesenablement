@@ -1,4 +1,5 @@
 import { CTAButton } from "../ui/Button";
+import { Logo } from "../ui/Logo";
 
 interface NavItem {
   id: string;
@@ -23,8 +24,19 @@ interface SidebarProps {
 export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment }: SidebarProps) {
   return (
     <aside className="w-sidebar shrink-0 h-full bg-surface border-r border-[var(--color-border)] flex flex-col py-6 px-3 gap-1">
+      {/* Brand mark */}
+      <div className="flex items-center gap-2 px-3 mb-5">
+        <Logo size={32} />
+        <div className="leading-tight">
+          <p className="text-xs font-bold uppercase tracking-widest text-heading">
+            LLG
+          </p>
+          <p className="text-2xs text-subtle">Sales Slayers</p>
+        </div>
+      </div>
+
       {/* User context */}
-      <div className="px-3 mb-6">
+      <div className="px-3 mb-5">
         <p className="text-xs font-semibold uppercase tracking-widest text-brand mb-0.5">
           Legal Marketing
         </p>
