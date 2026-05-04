@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card } from "../ui/Card";
 import { CTAButton, Button } from "../ui/Button";
+import { ShareButton } from "../ShareButton";
 import type { PackageRecommendation, ProbeReport } from "../../types";
 
 const PACKAGE_LABELS: Record<string, string> = {
@@ -44,7 +45,8 @@ export function FirmBriefing({ report, recommendation }: FirmBriefingProps) {
           </div>
           <span className="font-semibold text-sm text-heading">Firm Briefing</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <ShareButton report={report} variant="icon" />
           <button aria-label="helpful" className="text-subtle text-lg">👍</button>
           <button aria-label="not helpful" className="text-subtle text-lg">👎</button>
           <button aria-label="more options" className="text-subtle text-lg">⋮</button>

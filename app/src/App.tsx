@@ -6,21 +6,39 @@ import { LoadReportDialog } from "./components/LoadReportDialog";
 import { MOCK_REPORT, MOCK_SESSION } from "./data/mock";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { recommendPackage } from "./lib/packages";
-import { getActiveReport } from "./lib/storage";
+import { getActiveReport, saveReport } from "./lib/storage";
+import { clearHash, readReportFromHash } from "./lib/share";
 import type { ProbeReport } from "./types";
 
 export default function App() {
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [report, setReport] = useState<ProbeReport | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [loadingHash, setLoadingHash] = useState(true);
 
-  // Load active report from localStorage on mount.
+  // On mount: prefer ?#data= hash share, then fall back to localStorage active.
   useEffect(() => {
-    const active = getActiveReport();
-    if (active) setReport(active.report);
+    let cancelled = false;
+    (async () => {
+      const fromHash = await readReportFromHash();
+      if (cancelled) return;
+      if (fromHash) {
+        // Persist the shared report locally so the rep can come back to it.
+        saveReport(fromHash);
+        setReport(fromHash);
+        clearHash();
+        setLoadingHash(false);
+        return;
+      }
+      const active = getActiveReport();
+      if (active) setReport(active.report);
+      setLoadingHash(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Recompute the recommendation deterministically from the report.
   const recommendation = useMemo(
     () => (report ? recommendPackage(report) : null),
     [report]
@@ -36,11 +54,16 @@ export default function App() {
     setDialogOpen(false);
   };
 
-  // No report loaded → empty state on desktop, mock-on-mobile (closer needs the
-  // briefing immediately when they tap the link from a notification).
+  if (loadingHash) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <p className="text-sm text-subtle">Loading…</p>
+      </div>
+    );
+  }
+
   if (!report) {
     if (isMobile) {
-      // Mobile defaults to demo data so the briefing is always tappable.
       return (
         <FirmBriefing
           report={MOCK_REPORT}
@@ -62,9 +85,7 @@ export default function App() {
   }
 
   if (isMobile) {
-    return (
-      <FirmBriefing report={report} recommendation={recommendation!} />
-    );
+    return <FirmBriefing report={report} recommendation={recommendation!} />;
   }
 
   return (

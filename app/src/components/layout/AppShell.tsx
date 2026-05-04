@@ -28,6 +28,7 @@ export function AppShell({ report, recommendation, session, onLoadReport }: AppS
         onTabChange={setActiveTab}
         callStatus={callStatus}
         onLoadReport={onLoadReport}
+        report={report}
       />
 
       <div className="flex flex-1 overflow-hidden">

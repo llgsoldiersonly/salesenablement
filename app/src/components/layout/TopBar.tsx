@@ -1,6 +1,7 @@
 import { CTAButton } from "../ui/Button";
 import { DotBadge } from "../ui/Badge";
-import type { TabId } from "../../types";
+import { ShareButton } from "../ShareButton";
+import type { ProbeReport, TabId } from "../../types";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview",   label: "Overview" },
@@ -15,9 +16,10 @@ interface TopBarProps {
   callStatus: "idle" | "active" | "closed";
   onCloseDeal?: () => void;
   onLoadReport?: () => void;
+  report?: ProbeReport;
 }
 
-export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoadReport }: TopBarProps) {
+export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoadReport, report }: TopBarProps) {
   return (
     <header className="shrink-0 bg-surface border-b border-[var(--color-border)] flex flex-col">
       {/* Brand row */}
@@ -38,13 +40,13 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
           >
             📁
           </button>
-          {(["share", "history", "user"] as const).map((icon) => (
+          {report && <ShareButton report={report} variant="icon" />}
+          {(["history", "user"] as const).map((icon) => (
             <button
               key={icon}
               aria-label={icon}
               className="w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 flex items-center justify-center text-subtle text-sm"
             >
-              {icon === "share"   && "↑"}
               {icon === "history" && "⟳"}
               {icon === "user"    && "○"}
             </button>
