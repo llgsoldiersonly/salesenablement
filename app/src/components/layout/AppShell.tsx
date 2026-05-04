@@ -12,9 +12,10 @@ interface AppShellProps {
   report: ProbeReport;
   recommendation: PackageRecommendation;
   session: CallSession;
+  onLoadReport?: () => void;
 }
 
-export function AppShell({ report, recommendation, session }: AppShellProps) {
+export function AppShell({ report, recommendation, session, onLoadReport }: AppShellProps) {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [activeNav, setActiveNav] = useState("prospect");
 
@@ -26,6 +27,7 @@ export function AppShell({ report, recommendation, session }: AppShellProps) {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         callStatus={callStatus}
+        onLoadReport={onLoadReport}
       />
 
       <div className="flex flex-1 overflow-hidden">

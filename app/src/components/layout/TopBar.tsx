@@ -14,9 +14,10 @@ interface TopBarProps {
   onTabChange: (id: TabId) => void;
   callStatus: "idle" | "active" | "closed";
   onCloseDeal?: () => void;
+  onLoadReport?: () => void;
 }
 
-export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal }: TopBarProps) {
+export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoadReport }: TopBarProps) {
   return (
     <header className="shrink-0 bg-surface border-b border-[var(--color-border)] flex flex-col">
       {/* Brand row */}
@@ -29,6 +30,14 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal }: TopB
             <DotBadge color="green" label="Closer Call Active" />
           )}
           {/* Icon buttons */}
+          <button
+            onClick={onLoadReport}
+            aria-label="load report"
+            title="Load probe report"
+            className="w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 flex items-center justify-center text-subtle text-sm"
+          >
+            📁
+          </button>
           {(["share", "history", "user"] as const).map((icon) => (
             <button
               key={icon}
