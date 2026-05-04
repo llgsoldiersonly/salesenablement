@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── LLG Design Tokens ──────────────────────────────────────────────────── */
+
+:root {
+  /* Surface — the single neumorphic background. Every element uses this. */
+  --color-surface: #ecf0f3;
+
+  /* Text */
+  --color-heading: #0f172a;
+  --color-body: #334155;
+  --color-body-subtle: #64748b;
+
+  /* Brand */
+  --color-brand: #f05a28;       /* terracotta orange — CTAs, active states   */
+  --color-secondary: #231500;   /* deep brown — accent                        */
+  --color-disabled: #787878;    /* mid-gray — disabled / muted                */
+
+  /* Border — 1px subtle edge over neumorphic surface */
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-strong: rgba(0, 0, 0, 0.16);
+
+  /* Status */
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #262833;
+    --color-heading: #ecf0f3;
+    --color-body: #b8bfc9;
+    --color-body-subtle: #93a5be;
+    --color-brand: #f05a28;
+    --color-secondary: #c9a678;
+    --color-disabled: #5a5a5a;
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-strong: rgba(255, 255, 255, 0.16);
+  }
+}
+
+/* ── Base Reset ─────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-body);
+  font-family: "Nunito Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Utility Layer ──────────────────────────────────────────────────────── */
+
+@layer utilities {
+  /* Neumorphic raised states */
+  .nm-sm   { box-shadow: 3px 3px 6px #b8b9be, -3px -3px 6px #ffffff; }
+  .nm-md   { box-shadow: 6px 6px 12px #b8b9be, -6px -6px 12px #ffffff; }
+  .nm-lg   { box-shadow: 8px 8px 16px #b8b9be, -8px -8px 16px #ffffff; }
+  .nm-inset { box-shadow: inset 2px 2px 5px #b8b9be, inset -3px -3px 7px #ffffff; }
+
+  /* Active pressed state (matches sidebar + button active) */
+  .nm-pressed { box-shadow: inset 2px 2px 5px #b8b9be, inset -3px -3px 7px #ffffff; }
+
+  /* Brand accent left border (opener notes card) */
+  .border-l-brand { border-left: 3px solid var(--color-brand); }
+
+  /* Scrollbar thin */
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 9999px; }
+}

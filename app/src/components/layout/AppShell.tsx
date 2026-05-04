@@ -1,0 +1,69 @@
+import { useState } from "react";
+import { Sidebar } from "./Sidebar";
+import { TopBar } from "./TopBar";
+import { RightRail } from "./RightRail";
+import { OverviewTab } from "../tabs/OverviewTab";
+import { CalculatorTab } from "../tabs/CalculatorTab";
+import { IntakeTab } from "../tabs/IntakeTab";
+import { NotesTab } from "../tabs/NotesTab";
+import type { CallSession, PackageRecommendation, ProbeReport, TabId } from "../../types";
+
+interface AppShellProps {
+  report: ProbeReport;
+  recommendation: PackageRecommendation;
+  session: CallSession;
+}
+
+export function AppShell({ report, recommendation, session }: AppShellProps) {
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [activeNav, setActiveNav] = useState("prospect");
+
+  const callStatus = session.status;
+
+  return (
+    <div className="flex flex-col h-full bg-surface">
+      <TopBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        callStatus={callStatus}
+      />
+
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar
+          activeNav={activeNav}
+          onNavChange={setActiveNav}
+          firmName={report.firm.name}
+        />
+
+        {/* Main content area */}
+        <main className="flex-1 overflow-hidden flex flex-col bg-surface">
+          {activeTab === "overview"    && <OverviewTab    report={report} recommendation={recommendation} />}
+          {activeTab === "intake"     && <IntakeTab      report={report} />}
+          {activeTab === "calculator" && <CalculatorTab  firm={report.firm} />}
+          {activeTab === "notes"      && <NotesTab />}
+        </main>
+
+        <RightRail
+          session={session}
+          firmState={report.firm.state}
+        />
+      </div>
+
+      {/* Footer */}
+      <footer className="shrink-0 bg-surface border-t border-[var(--color-border)] px-6 py-2 flex items-center justify-between">
+        <div className="flex gap-4">
+          {["Terms of Service", "Privacy Policy", "Compliance Shield"].map((link) => (
+            <a key={link} href="#" className="text-2xs text-subtle hover:text-body transition-colors">
+              {link}
+            </a>
+          ))}
+        </div>
+        <p className="text-2xs text-subtle text-center flex-1 px-4">
+          Projection ≠ guarantee. Results based on algorithmic estimation and historical market
+          data for {report.firm.name}® {new Date().getFullYear()} LegalMarketing Compliance.
+          All information presented is confidential and for internal use only.
+        </p>
+      </footer>
+    </div>
+  );
+}
