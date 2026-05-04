@@ -5,6 +5,7 @@ import { RightRail } from "./RightRail";
 import { OverviewTab } from "../tabs/OverviewTab";
 import { CalculatorTab } from "../tabs/CalculatorTab";
 import { IntakeTab } from "../tabs/IntakeTab";
+import { CompetitorsTab } from "../tabs/CompetitorsTab";
 import { NotesTab } from "../tabs/NotesTab";
 import type { CallSession, PackageRecommendation, ProbeReport, TabId } from "../../types";
 
@@ -42,6 +43,7 @@ export function AppShell({ report, recommendation, session, onLoadReport }: AppS
         <main className="flex-1 overflow-hidden flex flex-col bg-surface">
           {activeTab === "overview"    && <OverviewTab    report={report} recommendation={recommendation} />}
           {activeTab === "intake"     && <IntakeTab      report={report} />}
+          {activeTab === "competitors" && <CompetitorsTab report={report} />}
           {activeTab === "calculator" && <CalculatorTab  firm={report.firm} />}
           {activeTab === "notes"      && <NotesTab />}
         </main>

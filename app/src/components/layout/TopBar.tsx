@@ -4,10 +4,11 @@ import { ShareButton } from "../ShareButton";
 import type { ProbeReport, TabId } from "../../types";
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: "overview",   label: "Overview" },
-  { id: "intake",     label: "Intake" },
-  { id: "calculator", label: "Calculator" },
-  { id: "notes",      label: "Notes" },
+  { id: "overview",     label: "Overview" },
+  { id: "intake",       label: "Site Audit" },
+  { id: "competitors",  label: "Competitors" },
+  { id: "calculator",   label: "Calculator" },
+  { id: "notes",        label: "Notes" },
 ];
 
 interface TopBarProps {
