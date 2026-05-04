@@ -1,5 +1,6 @@
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
+import { GeneratedBrief } from "../GeneratedBrief";
 import type { PackageRecommendation, ProbeReport } from "../../types";
 
 const PACKAGE_LABELS: Record<string, string> = {
@@ -157,6 +158,9 @@ export function OverviewTab({ report, recommendation }: OverviewTabProps) {
           </table>
         </div>
       </Card>
+
+      {/* Generated brief — stream from claude-opus-4-7 */}
+      <GeneratedBrief report={report} recommendation={recommendation} />
 
       {/* Recommended package banner */}
       <Card accent className="flex items-start justify-between gap-4 flex-wrap">
