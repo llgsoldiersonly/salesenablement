@@ -5,9 +5,9 @@
   "description": "Data-source spike for the LLG opener brief. Validates whether we can pull useful, structured data from a law firm's public footprint in <60s.",
   "type": "module",
   "scripts": {
-    "probe": "tsx src/probe.ts",
-    "batch": "tsx src/batch.ts",
-    "test:fixture": "tsx src/test-fixture.ts"
+    "probe": "node --env-file-if-exists=.env --import tsx src/probe.ts",
+    "batch": "node --env-file-if-exists=.env --import tsx src/batch.ts",
+    "test:fixture": "node --import tsx src/test-fixture.ts"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
