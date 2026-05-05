@@ -48,6 +48,20 @@ function llgApi(): PluginOption {
           ndjsonError(res, err);
         }
       });
+
+      server.middlewares.use("/api/deepgram-token", async (req, res, next) => {
+        if (req.method !== "POST") return next();
+        try {
+          const { handleDeepgramToken } = await server.ssrLoadModule("/server/deepgram-token-handler.ts");
+          await handleDeepgramToken(req, res);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error("deepgram-token handler crashed:", err);
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: String(err) }));
+        }
+      });
     },
   };
 }

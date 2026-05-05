@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "./ui/Button";
 import {
   buildTalkingPoints,
@@ -7,6 +7,8 @@ import {
   type Objection,
   type TalkingPoint,
 } from "../lib/closerCockpit";
+import { detectSignals } from "../lib/detectCockpitSignals";
+import { useDeepgramTranscription } from "../lib/useDeepgramTranscription";
 import type { PackageRecommendation, ProbeReport } from "../types";
 
 interface CloserCockpitProps {
@@ -43,6 +45,7 @@ export function CloserCockpit({
 
   const [elapsed, setElapsed] = useState(0);
   const [openObjection, setOpenObjection] = useState<string | null>(null);
+  const [flashObjection, setFlashObjection] = useState<string | null>(null);
   const [notes, setNotes] = useState<string>(() => localStorage.getItem(notesKey) ?? "");
   const [hitTriggers, setHitTriggers] = useState<Set<string>>(() => {
     try {
@@ -52,6 +55,43 @@ export function CloserCockpit({
       return new Set();
     }
   });
+
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const utterancesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Utterance handler — detect signals and auto-update UI
+  const handleUtterance = useCallback(
+    (text: string) => {
+      const { objectionId, triggerIds } = detectSignals(text);
+
+      if (objectionId) {
+        setOpenObjection(objectionId);
+        setFlashObjection(objectionId);
+        if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+        flashTimerRef.current = setTimeout(() => setFlashObjection(null), 2000);
+      }
+
+      if (triggerIds.length > 0) {
+        setHitTriggers((prev) => {
+          const next = new Set(prev);
+          triggerIds.forEach((id) => next.add(id));
+          return next;
+        });
+      }
+    },
+    [],
+  );
+
+  const { state: txState, errorMsg: txError, liveText, utterances, start: startTx, stop: stopTx } =
+    useDeepgramTranscription({ onUtterance: handleUtterance });
+
+  const transcriptionActive = txState === "active";
+  const transcriptionBusy = txState === "requesting-display" || txState === "connecting";
+
+  // Scroll utterances list to bottom on new entry
+  useEffect(() => {
+    utterancesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [utterances.length, liveText]);
 
   // Tick the timer every second
   useEffect(() => {
@@ -77,6 +117,12 @@ export function CloserCockpit({
     }
   }, [hitTriggers, triggersKey]);
 
+  // Stop transcription when call ends
+  const handleEndCall = () => {
+    stopTx();
+    onEndCall();
+  };
+
   const toggleTrigger = (id: string) => {
     setHitTriggers((prev) => {
       const next = new Set(prev);
@@ -91,7 +137,7 @@ export function CloserCockpit({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header — sticky timer + end call */}
+      {/* Header — timer + transcription toggle + end call */}
       <div className="shrink-0 bg-[#0F172A] text-[#ECF0F3] px-4 py-3 rounded-t-[8px] -mx-4 -mt-5 mb-4 flex items-center justify-between">
         <div>
           <p className="text-2xs uppercase tracking-widest text-[#94A3B8] font-semibold">
@@ -101,17 +147,81 @@ export function CloserCockpit({
             {formatElapsed(elapsed)}
           </p>
         </div>
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={onEndCall}
-          className="!bg-[#1E293B] !border-[#334155] !text-[#FCA5A5]"
-        >
-          End Call
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Live transcription toggle */}
+          <button
+            onClick={transcriptionActive ? stopTx : startTx}
+            disabled={transcriptionBusy}
+            title={transcriptionActive ? "Stop transcription" : "Start live transcription"}
+            className={[
+              "w-7 h-7 rounded-[6px] flex items-center justify-center text-sm transition-all duration-150",
+              transcriptionActive
+                ? "bg-brand text-white shadow-sm"
+                : transcriptionBusy
+                  ? "bg-[#1E293B] text-[#64748B] cursor-wait"
+                  : "bg-[#1E293B] text-[#94A3B8] hover:text-[#ECF0F3] hover:bg-[#334155]",
+            ].join(" ")}
+          >
+            {transcriptionBusy ? "…" : "🎙"}
+          </button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={handleEndCall}
+            className="!bg-[#1E293B] !border-[#334155] !text-[#FCA5A5]"
+          >
+            End Call
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin flex flex-col gap-5 pr-1 -mr-1">
+
+        {/* Live transcript feed */}
+        {(transcriptionActive || utterances.length > 0 || txError) && (
+          <section>
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-heading">
+                Live Transcript
+              </h3>
+              {transcriptionActive && (
+                <span className="inline-flex items-center gap-1 text-2xs text-brand font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                  Live
+                </span>
+              )}
+            </div>
+
+            {txError && (
+              <div className="rounded-[8px] bg-[#FEF2F2] border border-[var(--color-danger)]/30 p-2 mb-2">
+                <p className="text-2xs text-[var(--color-danger)]">{txError}</p>
+              </div>
+            )}
+
+            <div className="rounded-[8px] bg-surface shadow-inset border border-[var(--color-border)] p-3 max-h-36 overflow-y-auto scrollbar-thin flex flex-col gap-1">
+              {utterances.length === 0 && !liveText && (
+                <p className="text-xs text-subtle italic">
+                  {transcriptionActive
+                    ? "Listening for speech…"
+                    : "No transcript yet."}
+                </p>
+              )}
+              {utterances.map((u) => (
+                <p key={u.ts} className="text-xs text-body leading-relaxed">
+                  {u.text}
+                </p>
+              ))}
+              {liveText && (
+                <p className="text-xs text-subtle italic leading-relaxed">{liveText}…</p>
+              )}
+              <div ref={utterancesEndRef} />
+            </div>
+            <p className="text-2xs text-subtle mt-1">
+              Detects objections + closing triggers automatically
+            </p>
+          </section>
+        )}
+
         {/* Talking points */}
         <section>
           <h3 className="text-xs font-semibold uppercase tracking-widest text-heading mb-2">
@@ -149,7 +259,7 @@ export function CloserCockpit({
           <h3 className="text-xs font-semibold uppercase tracking-widest text-heading mb-2">
             Objection Handler
             <span className="ml-2 text-2xs text-subtle font-normal normal-case tracking-normal">
-              tap to reveal counter
+              {transcriptionActive ? "auto-detecting" : "tap to reveal counter"}
             </span>
           </h3>
           <div className="flex flex-col gap-1.5">
@@ -158,6 +268,7 @@ export function CloserCockpit({
                 key={obj.id}
                 objection={obj}
                 open={openObjection === obj.id}
+                flash={flashObjection === obj.id}
                 onToggle={() =>
                   setOpenObjection((prev) => (prev === obj.id ? null : obj.id))
                 }
@@ -246,11 +357,9 @@ export function CloserCockpit({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Type while you talk — autosaved per firm."
-            className="w-full h-32 bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-2 text-xs text-body resize-none outline-none focus:ring-2 focus:ring-brand"
+            className="w-full h-28 bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-2 text-xs text-body resize-none outline-none focus:ring-2 focus:ring-brand"
           />
-          <p className="text-2xs text-subtle mt-1">
-            Saved locally · {notes.length} chars
-          </p>
+          <p className="text-2xs text-subtle mt-1">Saved locally · {notes.length} chars</p>
         </section>
       </div>
     </div>
@@ -260,24 +369,33 @@ export function CloserCockpit({
 function ObjectionCard({
   objection,
   open,
+  flash,
   onToggle,
 }: {
   objection: Objection;
   open: boolean;
+  flash: boolean;
   onToggle: () => void;
 }) {
   return (
     <div
       className={[
-        "rounded-[8px] border transition-all duration-150",
-        open
-          ? "bg-surface shadow-md border-[var(--color-border-strong)]"
-          : "bg-surface shadow-sm border-[var(--color-border)] hover:shadow-md",
+        "rounded-[8px] border transition-all duration-200",
+        flash
+          ? "bg-brand/10 border-brand shadow-md"
+          : open
+            ? "bg-surface shadow-md border-[var(--color-border-strong)]"
+            : "bg-surface shadow-sm border-[var(--color-border)] hover:shadow-md",
       ].join(" ")}
     >
       <button onClick={onToggle} className="w-full text-left px-3 py-2 flex items-start gap-2">
         <span className="text-xs text-subtle shrink-0 mt-0.5">{open ? "−" : "+"}</span>
         <p className="text-xs text-body italic flex-1 leading-snug">"{objection.text}"</p>
+        {flash && (
+          <span className="shrink-0 text-2xs font-semibold text-brand uppercase tracking-wider">
+            Detected
+          </span>
+        )}
       </button>
       {open && (
         <div className="px-3 pb-3 pt-0 ml-4 border-l-2 border-brand/30">
