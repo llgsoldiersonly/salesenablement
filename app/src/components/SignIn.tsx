@@ -93,7 +93,7 @@ export function SignIn() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@yourfirm.com"
+                placeholder="you@lucrativelegal.com"
                 required
                 autoFocus
                 disabled={phase === "sending"}
