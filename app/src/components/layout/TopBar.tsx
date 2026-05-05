@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { CTAButton } from "../ui/Button";
 import { DotBadge } from "../ui/Badge";
 import { Logo } from "../ui/Logo";
 import { ShareButton } from "../ShareButton";
+import { useAuth } from "../../lib/auth";
 import type { ProbeReport, TabId } from "../../types";
 
 const TABS: { id: TabId; label: string }[] = [
@@ -22,6 +24,16 @@ interface TopBarProps {
 }
 
 export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoadReport, report }: TopBarProps) {
+  const { profile, role, signOut } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const initials = (profile?.full_name ?? profile?.email ?? "?")
+    .split(/\s+|@/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase())
+    .join("");
+  const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : "";
+
   return (
     <header className="shrink-0 bg-surface border-b border-[var(--color-border)] flex flex-col">
       {/* Brand row */}
@@ -46,16 +58,57 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
             📁
           </button>
           {report && <ShareButton report={report} variant="icon" />}
-          {(["history", "user"] as const).map((icon) => (
+          <button
+            aria-label="history"
+            className="w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 flex items-center justify-center text-subtle text-sm"
+          >
+            ⟳
+          </button>
+
+          {/* User menu */}
+          <div className="relative">
             <button
-              key={icon}
-              aria-label={icon}
-              className="w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 flex items-center justify-center text-subtle text-sm"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="account"
+              title={`${profile?.full_name ?? profile?.email ?? ""} · ${roleLabel}`}
+              className="w-8 h-8 rounded-[8px] bg-brand/10 text-brand text-xs font-semibold shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 flex items-center justify-center"
             >
-              {icon === "history" && "⟳"}
-              {icon === "user"    && "○"}
+              {initials || "○"}
             </button>
-          ))}
+            {menuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setMenuOpen(false)}
+                  aria-hidden
+                />
+                <div className="absolute right-0 mt-2 w-56 bg-surface rounded-[8px] shadow-xl border border-[var(--color-border)] z-50 overflow-hidden">
+                  <div className="px-3 py-2 border-b border-[var(--color-border)]">
+                    <p className="text-sm font-medium text-heading truncate">
+                      {profile?.full_name ?? profile?.email}
+                    </p>
+                    {profile?.full_name && (
+                      <p className="text-xs text-subtle truncate">{profile.email}</p>
+                    )}
+                    {roleLabel && (
+                      <span className="inline-block mt-1 text-2xs uppercase tracking-wider text-brand font-semibold">
+                        {roleLabel}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      void signOut();
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-body hover:bg-[var(--color-bg-subtle)] transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <CTAButton
             size="sm"
             onClick={onCloseDeal}
