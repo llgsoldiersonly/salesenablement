@@ -13,7 +13,7 @@
  * the Team page (Phase 2).
  */
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { supabase } from "../lib/supabase";
 import { Button, CTAButton } from "./ui/Button";
 import { Logo } from "./ui/Logo";
@@ -23,10 +23,28 @@ const inputClass =
 
 type Phase = "form" | "sending" | "sent" | "error";
 
+const OTP_ERROR_MESSAGES: Record<string, string> = {
+  otp_expired: "Your sign-in link has expired or was already used. Please request a new one.",
+  otp_disabled: "Magic link sign-in is not enabled. Contact your admin.",
+  access_denied: "Sign-in was denied. Please request a new link.",
+};
+
 export function SignIn() {
   const [email, setEmail] = useState("");
   const [phase, setPhase] = useState<Phase>("form");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.includes("error=")) return;
+    const params = new URLSearchParams(hash.slice(1));
+    const code = params.get("error_code") ?? params.get("error") ?? "";
+    const desc = params.get("error_description") ?? "";
+    const friendly = OTP_ERROR_MESSAGES[code] ?? desc.replace(/\+/g, " ") ?? "Something went wrong. Please try again.";
+    setErrorMsg(friendly);
+    setPhase("error");
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
