@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── LLG Design Tokens ──────────────────────────────────────────────────── */
+
+:root {
+  /* Surface — the single neumorphic background. Every element uses this. */
+  --color-surface: #ecf0f3;
+
+  /* Text */
+  --color-heading: #0f172a;
+  --color-body: #334155;
+  --color-body-subtle: #64748b;
+
+  /* Brand */
+  --color-brand: #f05a28;       /* terracotta orange — CTAs, active states   */
+  --color-secondary: #231500;   /* deep brown — accent                        */
+  --color-disabled: #787878;    /* mid-gray — disabled / muted                */
+
+  /* Border — 1px subtle edge over neumorphic surface */
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-strong: rgba(0, 0, 0, 0.16);
+
+  /* Status */
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #262833;
+    --color-heading: #ecf0f3;
+    --color-body: #b8bfc9;
+    --color-body-subtle: #93a5be;
+    --color-brand: #f05a28;
+    --color-secondary: #c9a678;
+    --color-disabled: #5a5a5a;
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-strong: rgba(255, 255, 255, 0.16);
+  }
+}
+
+/* ── Base Reset ─────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-body);
+  font-family: "Nunito Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Utility Layer ──────────────────────────────────────────────────────── */
+
+@layer utilities {
+  /* Neumorphic raised states */
+  .nm-sm   { box-shadow: 3px 3px 6px #b8b9be, -3px -3px 6px #ffffff; }
+  .nm-md   { box-shadow: 6px 6px 12px #b8b9be, -6px -6px 12px #ffffff; }
+  .nm-lg   { box-shadow: 8px 8px 16px #b8b9be, -8px -8px 16px #ffffff; }
+  .nm-inset { box-shadow: inset 2px 2px 5px #b8b9be, inset -3px -3px 7px #ffffff; }
+
+  /* Active pressed state (matches sidebar + button active) */
+  .nm-pressed { box-shadow: inset 2px 2px 5px #b8b9be, inset -3px -3px 7px #ffffff; }
+
+  /* Brand accent left border (opener notes card) */
+  .border-l-brand { border-left: 3px solid var(--color-brand); }
+
+  /* Scrollbar thin */
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 9999px; }
+}
+
+/* ── Markdown render (Generated Brief) ──────────────────────────────────── */
+
+.prose-llg {
+  color: var(--color-body);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.prose-llg h1 { font-size: 20px; font-weight: 700; color: var(--color-heading); margin: 0 0 12px; line-height: 1.25; }
+.prose-llg h2 { font-size: 16px; font-weight: 600; color: var(--color-heading); margin: 20px 0 8px; padding-top: 12px; border-top: 1px solid var(--color-border); }
+.prose-llg h2:first-child { padding-top: 0; border-top: 0; margin-top: 0; }
+.prose-llg h3 { font-size: 14px; font-weight: 600; color: var(--color-heading); margin: 14px 0 4px; }
+.prose-llg h4 { font-size: 13px; font-weight: 600; color: var(--color-heading); margin: 12px 0 4px; }
+.prose-llg p  { margin: 0 0 10px; }
+.prose-llg em { color: var(--color-body-subtle); font-style: italic; }
+.prose-llg strong { color: var(--color-heading); font-weight: 600; }
+.prose-llg ul, .prose-llg ol { margin: 0 0 10px; padding-left: 20px; }
+.prose-llg li { margin: 0 0 4px; }
+.prose-llg blockquote {
+  border-left: 3px solid var(--color-brand);
+  padding: 4px 0 4px 12px;
+  margin: 8px 0;
+  color: var(--color-body);
+  font-style: italic;
+}
+.prose-llg code {
+  background: var(--color-surface);
+  box-shadow: inset 1px 1px 2px #b8b9be, inset -1px -1px 2px #fff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--color-brand);
+}
+.prose-llg hr { border: 0; border-top: 1px solid var(--color-border); margin: 16px 0; }
+.prose-llg a  { color: var(--color-brand); text-decoration: underline; }
+.prose-llg a:hover { text-decoration: none; }
+
+/* ── Animations (slider-cascade-math.md §6) ─────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-cascade {
+  0%   { transform: scale(1.00); }
+  50%  { transform: scale(1.06); color: var(--color-brand); }
+  100% { transform: scale(1.00); }
+}
+
+.cascading-number.is-pulsing {
+  animation: pulse-cascade 350ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cascading-number.is-pulsing {
+    animation: none;
+  }
+}

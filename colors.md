@@ -9,16 +9,25 @@
 
 **CRITICAL RULE:** In pure neumorphism, there is ONLY ONE background color for the entire UI. The page background, cards, buttons, inputs, and sidebars MUST ALL USE `neutral-primary-soft`. Do NOT use different background colors to differentiate elements. Depth and separation are created EXCLUSIVELY through shadows (`shadow-sm`, `shadow-md`, `shadow-inset`).
 
+## Brand Palette (LLG)
+
+| Token | Hex | Role |
+|---|---|---|
+| brand-primary | #0F172A | Dark navy — primary heading and text |
+| brand-secondary | #F05A28 | Terracotta orange — primary action / brand CTA |
+| brand-tertiary | #231500 | Deep brown — accent emphasis |
+| brand-neutral | #787878 | Mid-gray — disabled, muted supporting text |
+
 ### Text Color Tokens
 
 | Token | Light | Dark |
 |---|---|---|
-| heading | #31344B | #ECF0F3 |
-| body | #44476A | #93A5BE |
-| body-subtle | #66799E | #93A5BE |
-| color-brand | #128759 | #20B27A |
-| color-secondary | #389DC6 | #389DC6 |
-| fg-disabled | #93A5BE | #66799E |
+| heading | #0F172A | #ECF0F3 |
+| body | #334155 | #B8BFC9 |
+| body-subtle | #64748B | #93A5BE |
+| color-brand | #F05A28 | #F05A28 |
+| color-secondary | #231500 | #C9A678 |
+| fg-disabled | #787878 | #5A5A5A |
 
 ## Semantic Usage Rules
 
