@@ -1,8 +1,15 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, CTAButton } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { Logo } from "./ui/Logo";
-import { isProbeReport, listReports, saveReport, setActiveReport, deleteReport } from "../lib/storage";
+import {
+  isProbeReport,
+  listReports,
+  saveReport,
+  setActiveReport,
+  deleteReport,
+  type StoredReport,
+} from "../lib/storage";
 import type { ProbeReport } from "../types";
 
 interface LoadReportDialogProps {
@@ -15,12 +22,24 @@ interface LoadReportDialogProps {
 export function LoadReportDialog({ open, onClose, onLoaded, onUseMock }: LoadReportDialogProps) {
   const [pasteValue, setPasteValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [stored, setStored] = useState<StoredReport[]>([]);
+  const [reloadKey, setReloadKey] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
-  const stored = listReports();
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void listReports().then((reports) => {
+      if (!cancelled) setStored(reports);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, reloadKey]);
 
   if (!open) return null;
 
-  const handleLoad = (raw: string) => {
+  const handleLoad = async (raw: string) => {
     setError(null);
     try {
       const parsed = JSON.parse(raw);
@@ -28,7 +47,7 @@ export function LoadReportDialog({ open, onClose, onLoaded, onUseMock }: LoadRep
         setError("That doesn't look like a probe report. Expected fields: firm, sources, coverageScore.");
         return;
       }
-      saveReport(parsed);
+      await saveReport(parsed);
       onLoaded(parsed);
     } catch (err) {
       setError(err instanceof Error ? `Invalid JSON: ${err.message}` : "Invalid JSON");
@@ -37,7 +56,7 @@ export function LoadReportDialog({ open, onClose, onLoaded, onUseMock }: LoadRep
 
   const handleFile = async (file: File) => {
     const text = await file.text();
-    handleLoad(text);
+    await handleLoad(text);
   };
 
   return (
@@ -92,12 +111,10 @@ export function LoadReportDialog({ open, onClose, onLoaded, onUseMock }: LoadRep
                       </p>
                     </button>
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        deleteReport(s.id);
-                        // force re-render
-                        setError("");
-                        setTimeout(() => setError(null), 0);
+                        await deleteReport(s.id);
+                        setReloadKey((k) => k + 1);
                       }}
                       aria-label="delete"
                       className="text-subtle hover:text-[var(--color-danger)] text-sm px-2"
@@ -154,7 +171,7 @@ export function LoadReportDialog({ open, onClose, onLoaded, onUseMock }: LoadRep
               fullWidth
               className="mt-2"
               disabled={!pasteValue.trim()}
-              onClick={() => handleLoad(pasteValue)}
+              onClick={() => void handleLoad(pasteValue)}
             >
               Load pasted report
             </Button>

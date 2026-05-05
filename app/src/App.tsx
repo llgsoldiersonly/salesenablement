@@ -4,9 +4,11 @@ import { FirmBriefing } from "./components/mobile/FirmBriefing";
 import { EmptyState } from "./components/EmptyState";
 import { LoadReportDialog } from "./components/LoadReportDialog";
 import { NewAssessmentDialog } from "./components/NewAssessmentDialog";
+import { SignIn } from "./components/SignIn";
 import { Logo } from "./components/ui/Logo";
 import { MOCK_REPORT, MOCK_SESSION } from "./data/mock";
 import { useMediaQuery } from "./hooks/useMediaQuery";
+import { useAuth } from "./lib/auth";
 import { recommendPackage } from "./lib/packages";
 import { getActiveReport, saveReport } from "./lib/storage";
 import { clearHash, readReportFromHash } from "./lib/share";
@@ -14,33 +16,52 @@ import type { ProbeReport } from "./types";
 
 export default function App() {
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const { session, loading: authLoading } = useAuth();
   const [report, setReport] = useState<ProbeReport | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [probeOpen, setProbeOpen] = useState(false);
   const [loadingHash, setLoadingHash] = useState(true);
 
-  // On mount: prefer ?#data= hash share, then fall back to localStorage active.
+  // On mount (and after sign-in): prefer ?#data= hash share, then fall back
+  // to the user's active assessment in Supabase.
   useEffect(() => {
+    if (authLoading || !session) {
+      setLoadingHash(false);
+      return;
+    }
     let cancelled = false;
+    setLoadingHash(true);
     (async () => {
       const fromHash = await readReportFromHash();
       if (cancelled) return;
       if (fromHash) {
-        // Persist the shared report locally so the rep can come back to it.
-        saveReport(fromHash);
+        await saveReport(fromHash);
         setReport(fromHash);
         clearHash();
         setLoadingHash(false);
         return;
       }
-      const active = getActiveReport();
-      if (active) setReport(active.report);
-      setLoadingHash(false);
+      const active = await getActiveReport();
+      if (!cancelled && active) setReport(active.report);
+      if (!cancelled) setLoadingHash(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authLoading, session]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-surface">
+        <Logo variant="full" size={96} className="animate-pulse" />
+        <p className="text-sm text-subtle">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <SignIn />;
+  }
 
   const recommendation = useMemo(
     () => (report ? recommendPackage(report) : null),

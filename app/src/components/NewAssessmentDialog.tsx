@@ -137,7 +137,7 @@ export function NewAssessmentDialog({ open, onClose, onLoaded }: NewAssessmentDi
             },
           }));
         } else if (event.type === "report") {
-          saveReport(event.report);
+          await saveReport(event.report);
           setPhase("done");
           setTimeout(() => {
             onLoaded(event.report);

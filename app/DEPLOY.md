@@ -29,11 +29,17 @@ When prompted:
 In the Vercel dashboard → Project → Settings → Environment Variables, or via CLI:
 
 ```bash
-vercel env add ANTHROPIC_API_KEY      # required — for /api/brief
-vercel env add DEEPGRAM_API_KEY        # required — for /api/deepgram-token
-vercel env add GOOGLE_PLACES_API_KEY   # optional — probe falls back to mock
-vercel env add SERPAPI_KEY             # optional — probe falls back to mock
+vercel env add ANTHROPIC_API_KEY        # required — for /api/brief
+vercel env add DEEPGRAM_API_KEY          # required — for /api/deepgram-token
+vercel env add GOOGLE_PLACES_API_KEY     # optional — probe falls back to mock
+vercel env add SERPAPI_KEY               # optional — probe falls back to mock
+vercel env add VITE_SUPABASE_URL         # required — auth + storage (browser)
+vercel env add VITE_SUPABASE_ANON_KEY    # required — auth + storage (browser)
 ```
+
+`VITE_*` vars are exposed to the browser bundle at build time — that's correct
+for Supabase publishable keys; row-level security in Postgres is what protects
+data, not key secrecy.
 
 Set each for **Production**, **Preview**, and **Development** (or just Production if that's all you need).
 
