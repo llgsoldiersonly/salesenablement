@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   try {
-    const { handleBrief } = await import("../server/handler");
+    const { handleBrief } = await import("../server/handler.js");
     await handleBrief(req, res, req.body);
   } catch (err) {
     const msg = err instanceof Error ? `${err.message}\n${err.stack ?? ""}` : String(err);

@@ -1,4 +1,4 @@
-import type { FirmInput, SerpCompetitor, SerpData, SourceResult } from "../../src/types";
+import type { FirmInput, SerpCompetitor, SerpData, SourceResult } from "../../src/types/index.js";
 
 const SERPAPI_URL = "https://serpapi.com/search.json";
 

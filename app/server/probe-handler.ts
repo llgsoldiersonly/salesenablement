@@ -10,8 +10,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { runProbe } from "./probe/run";
-import type { FirmInput } from "../src/types";
+import { runProbe } from "./probe/run.js";
+import type { FirmInput } from "../src/types/index.js";
 
 interface ProbeRequestBody {
   firm: FirmInput;

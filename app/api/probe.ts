@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   try {
-    const { handleProbe } = await import("../server/probe-handler");
+    const { handleProbe } = await import("../server/probe-handler.js");
     await handleProbe(req, res, req.body);
   } catch (err) {
     const msg = err instanceof Error ? `${err.message}\n${err.stack ?? ""}` : String(err);
