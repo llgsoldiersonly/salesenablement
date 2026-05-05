@@ -47,6 +47,22 @@ const PRACTICE_AREAS = [
   "Civil Litigation",
 ];
 
+const US_STATES: Array<[string, string]> = [
+  ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"],
+  ["CA", "California"], ["CO", "Colorado"], ["CT", "Connecticut"], ["DE", "Delaware"],
+  ["DC", "District of Columbia"], ["FL", "Florida"], ["GA", "Georgia"], ["HI", "Hawaii"],
+  ["ID", "Idaho"], ["IL", "Illinois"], ["IN", "Indiana"], ["IA", "Iowa"],
+  ["KS", "Kansas"], ["KY", "Kentucky"], ["LA", "Louisiana"], ["ME", "Maine"],
+  ["MD", "Maryland"], ["MA", "Massachusetts"], ["MI", "Michigan"], ["MN", "Minnesota"],
+  ["MS", "Mississippi"], ["MO", "Missouri"], ["MT", "Montana"], ["NE", "Nebraska"],
+  ["NV", "Nevada"], ["NH", "New Hampshire"], ["NJ", "New Jersey"], ["NM", "New Mexico"],
+  ["NY", "New York"], ["NC", "North Carolina"], ["ND", "North Dakota"], ["OH", "Ohio"],
+  ["OK", "Oklahoma"], ["OR", "Oregon"], ["PA", "Pennsylvania"], ["RI", "Rhode Island"],
+  ["SC", "South Carolina"], ["SD", "South Dakota"], ["TN", "Tennessee"], ["TX", "Texas"],
+  ["UT", "Utah"], ["VT", "Vermont"], ["VA", "Virginia"], ["WA", "Washington"],
+  ["WV", "West Virginia"], ["WI", "Wisconsin"], ["WY", "Wyoming"],
+];
+
 const BLANK_FIRM: FirmInput = { name: "", url: "", city: "", state: "", practiceArea: "" };
 
 const BLANK_SOURCES: Record<ProbeSource, SourceState> = {
@@ -213,17 +229,19 @@ export function NewAssessmentDialog({ open, onClose, onLoaded }: NewAssessmentDi
                   />
                 </Field>
                 <Field label="State" required>
-                  <input
-                    type="text"
+                  <select
                     value={firm.state}
-                    onChange={(e) =>
-                      setFirm((f) => ({ ...f, state: e.target.value.toUpperCase().slice(0, 2) }))
-                    }
-                    placeholder="MT"
-                    maxLength={2}
+                    onChange={(e) => setFirm((f) => ({ ...f, state: e.target.value }))}
                     required
                     className={inputClass}
-                  />
+                  >
+                    <option value="">Select…</option>
+                    {US_STATES.map(([abbr, name]) => (
+                      <option key={abbr} value={abbr}>
+                        {abbr} — {name}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
               </div>
 
