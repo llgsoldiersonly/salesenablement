@@ -48,19 +48,27 @@ function isFirmInput(value: unknown): value is FirmInput {
   );
 }
 
-export async function handleProbe(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleProbe(
+  req: IncomingMessage,
+  res: ServerResponse,
+  preParsedBody?: ProbeRequestBody,
+): Promise<void> {
   let body: ProbeRequestBody;
-  try {
-    body = await readJsonBody(req);
-  } catch (e) {
-    res.statusCode = 400;
-    res.setHeader("Content-Type", "application/x-ndjson");
-    writeEvent(res, {
-      type: "error",
-      message: `Invalid JSON body: ${e instanceof Error ? e.message : String(e)}`,
-    });
-    res.end();
-    return;
+  if (preParsedBody) {
+    body = preParsedBody;
+  } else {
+    try {
+      body = await readJsonBody(req);
+    } catch (e) {
+      res.statusCode = 400;
+      res.setHeader("Content-Type", "application/x-ndjson");
+      writeEvent(res, {
+        type: "error",
+        message: `Invalid JSON body: ${e instanceof Error ? e.message : String(e)}`,
+      });
+      res.end();
+      return;
+    }
   }
 
   if (!isFirmInput(body.firm)) {

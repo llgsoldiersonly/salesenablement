@@ -44,7 +44,11 @@ function writeEvent(res: ServerResponse, event: object): void {
   res.write(JSON.stringify(event) + "\n");
 }
 
-export async function handleBrief(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleBrief(
+  req: IncomingMessage,
+  res: ServerResponse,
+  preParsedBody?: BriefRequestBody,
+): Promise<void> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     res.statusCode = 500;
@@ -55,17 +59,21 @@ export async function handleBrief(req: IncomingMessage, res: ServerResponse): Pr
   }
 
   let body: BriefRequestBody;
-  try {
-    body = await readJsonBody(req);
-  } catch (e) {
-    res.statusCode = 400;
-    res.setHeader("Content-Type", "application/x-ndjson");
-    writeEvent(res, {
-      type: "error",
-      message: `Invalid JSON body: ${e instanceof Error ? e.message : String(e)}`,
-    });
-    res.end();
-    return;
+  if (preParsedBody) {
+    body = preParsedBody;
+  } else {
+    try {
+      body = await readJsonBody(req);
+    } catch (e) {
+      res.statusCode = 400;
+      res.setHeader("Content-Type", "application/x-ndjson");
+      writeEvent(res, {
+        type: "error",
+        message: `Invalid JSON body: ${e instanceof Error ? e.message : String(e)}`,
+      });
+      res.end();
+      return;
+    }
   }
 
   if (!body.report || !body.recommendation) {
