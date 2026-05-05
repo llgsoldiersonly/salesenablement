@@ -2,15 +2,29 @@ import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 
 /**
- * Dev-only plugin that mounts the brief generator endpoint.
- * Production deploys should expose handleBrief() via a serverless function
- * or a small Express/Hono server — the contract is identical.
+ * Dev-only plugin that mounts the API endpoints.
+ * Production deploys should expose handleBrief / handleProbe via serverless
+ * functions or a small Express/Hono server — the contracts are identical.
  */
-function briefApi(): PluginOption {
+function llgApi(): PluginOption {
   return {
-    name: "llg:brief-api",
+    name: "llg:api",
     apply: "serve",
     configureServer(server) {
+      const ndjsonError = (res: import("node:http").ServerResponse, err: unknown) => {
+        if (!res.headersSent) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/x-ndjson");
+        }
+        res.write(
+          JSON.stringify({
+            type: "error",
+            message: err instanceof Error ? err.message : String(err),
+          }) + "\n",
+        );
+        res.end();
+      };
+
       server.middlewares.use("/api/brief", async (req, res, next) => {
         if (req.method !== "POST") return next();
         try {
@@ -19,17 +33,19 @@ function briefApi(): PluginOption {
         } catch (err) {
           // eslint-disable-next-line no-console
           console.error("brief handler crashed:", err);
-          if (!res.headersSent) {
-            res.statusCode = 500;
-            res.setHeader("Content-Type", "application/x-ndjson");
-          }
-          res.write(
-            JSON.stringify({
-              type: "error",
-              message: err instanceof Error ? err.message : String(err),
-            }) + "\n"
-          );
-          res.end();
+          ndjsonError(res, err);
+        }
+      });
+
+      server.middlewares.use("/api/probe", async (req, res, next) => {
+        if (req.method !== "POST") return next();
+        try {
+          const { handleProbe } = await server.ssrLoadModule("/server/probe-handler.ts");
+          await handleProbe(req, res);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error("probe handler crashed:", err);
+          ndjsonError(res, err);
         }
       });
     },
@@ -37,5 +53,5 @@ function briefApi(): PluginOption {
 }
 
 export default defineConfig({
-  plugins: [react(), briefApi()],
+  plugins: [react(), llgApi()],
 });

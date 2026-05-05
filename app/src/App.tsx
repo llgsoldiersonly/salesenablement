@@ -3,6 +3,7 @@ import { AppShell } from "./components/layout/AppShell";
 import { FirmBriefing } from "./components/mobile/FirmBriefing";
 import { EmptyState } from "./components/EmptyState";
 import { LoadReportDialog } from "./components/LoadReportDialog";
+import { NewAssessmentDialog } from "./components/NewAssessmentDialog";
 import { Logo } from "./components/ui/Logo";
 import { MOCK_REPORT, MOCK_SESSION } from "./data/mock";
 import { useMediaQuery } from "./hooks/useMediaQuery";
@@ -15,6 +16,7 @@ export default function App() {
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [report, setReport] = useState<ProbeReport | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [probeOpen, setProbeOpen] = useState(false);
   const [loadingHash, setLoadingHash] = useState(true);
 
   // On mount: prefer ?#data= hash share, then fall back to localStorage active.
@@ -75,12 +77,20 @@ export default function App() {
     }
     return (
       <>
-        <EmptyState onLoadReport={() => setDialogOpen(true)} />
+        <EmptyState
+          onLoadReport={() => setDialogOpen(true)}
+          onNewAssessment={() => setProbeOpen(true)}
+        />
         <LoadReportDialog
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
           onLoaded={handleLoaded}
           onUseMock={handleUseMock}
+        />
+        <NewAssessmentDialog
+          open={probeOpen}
+          onClose={() => setProbeOpen(false)}
+          onLoaded={handleLoaded}
         />
       </>
     );
@@ -97,12 +107,18 @@ export default function App() {
         recommendation={recommendation!}
         session={MOCK_SESSION}
         onLoadReport={() => setDialogOpen(true)}
+        onNewAssessment={() => setProbeOpen(true)}
       />
       <LoadReportDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onLoaded={handleLoaded}
         onUseMock={handleUseMock}
+      />
+      <NewAssessmentDialog
+        open={probeOpen}
+        onClose={() => setProbeOpen(false)}
+        onLoaded={handleLoaded}
       />
     </>
   );

@@ -14,9 +14,10 @@ interface AppShellProps {
   recommendation: PackageRecommendation;
   session: CallSession;
   onLoadReport?: () => void;
+  onNewAssessment?: () => void;
 }
 
-export function AppShell({ report, recommendation, session, onLoadReport }: AppShellProps) {
+export function AppShell({ report, recommendation, session, onLoadReport, onNewAssessment }: AppShellProps) {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [activeNav, setActiveNav] = useState("prospect");
 
@@ -37,6 +38,7 @@ export function AppShell({ report, recommendation, session, onLoadReport }: AppS
           activeNav={activeNav}
           onNavChange={setActiveNav}
           firmName={report.firm.name}
+          onNewAssessment={onNewAssessment}
         />
 
         {/* Main content area */}
