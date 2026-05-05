@@ -10,7 +10,6 @@
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleBrief } from "../server/handler";
 
 export const config = {
   maxDuration: 60,
@@ -21,5 +20,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
-  await handleBrief(req, res, req.body);
+
+  try {
+    const { handleBrief } = await import("../server/handler");
+    await handleBrief(req, res, req.body);
+  } catch (err) {
+    const msg = err instanceof Error ? `${err.message}\n${err.stack ?? ""}` : String(err);
+    console.error("[/api/brief] handler crashed:", msg);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/x-ndjson");
+    }
+    try {
+      res.write(JSON.stringify({ type: "error", message: `brief crashed: ${msg}` }) + "\n");
+    } catch {
+      // ignore
+    }
+    res.end();
+  }
 }
