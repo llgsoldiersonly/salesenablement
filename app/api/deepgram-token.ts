@@ -6,7 +6,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleDeepgramToken } from "../server/deepgram-token-handler";
+import { handleDeepgramToken } from "../server/deepgram-token-handler.js";
 
 export const config = {
   maxDuration: 5,

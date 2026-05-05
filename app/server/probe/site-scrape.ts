@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import type { FirmInput, SiteScrapeData, SourceResult } from "../../src/types";
+import type { FirmInput, SiteScrapeData, SourceResult } from "../../src/types/index.js";
 
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +

@@ -4,10 +4,10 @@
  * the spike CLI does.
  */
 
-import { scrapeSite } from "./site-scrape";
-import { fetchPlaces } from "./places";
-import { fetchSerp } from "./serp";
-import type { FirmInput, ProbeReport, SourceResult } from "../../src/types";
+import { scrapeSite } from "./site-scrape.js";
+import { fetchPlaces } from "./places.js";
+import { fetchSerp } from "./serp.js";
+import type { FirmInput, ProbeReport, SourceResult } from "../../src/types/index.js";
 
 export interface ProbeStepEvent {
   type: "step";

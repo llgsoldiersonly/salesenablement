@@ -13,8 +13,8 @@ import {
   CORE_PACKAGES,
   PACKAGES,
   formatUsd,
-} from "../src/lib/packages";
-import type { PackageRecommendation, ProbeReport } from "../src/types";
+} from "../src/lib/packages.js";
+import type { PackageRecommendation, ProbeReport } from "../src/types/index.js";
 
 interface TierFeatureMatrix {
   gmbLocations: number;

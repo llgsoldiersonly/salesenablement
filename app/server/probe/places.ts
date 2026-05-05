@@ -1,4 +1,4 @@
-import type { FirmInput, PlacesData, SourceResult } from "../../src/types";
+import type { FirmInput, PlacesData, SourceResult } from "../../src/types/index.js";
 
 const PLACES_FIND_URL = "https://places.googleapis.com/v1/places:searchText";
 

@@ -17,8 +17,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { buildSystemPrompt, buildUserPrompt } from "./prompts";
-import type { PackageRecommendation, ProbeReport } from "../src/types";
+import { buildSystemPrompt, buildUserPrompt } from "./prompts.js";
+import type { PackageRecommendation, ProbeReport } from "../src/types/index.js";
 
 interface BriefRequestBody {
   report: ProbeReport;

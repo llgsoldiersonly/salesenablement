@@ -1,4 +1,4 @@
-import type { PackageId, PackageRecommendation, ProbeReport } from "../types";
+import type { PackageId, PackageRecommendation, ProbeReport } from "../types/index.js";
 
 /* Mirrors spike/probe/src/packages.ts. Keep these two in sync until we extract
  * a shared workspace package. The deterministic recommendation logic lives in
