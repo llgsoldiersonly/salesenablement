@@ -56,8 +56,12 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
               {icon === "user"    && "○"}
             </button>
           ))}
-          <CTAButton size="sm" onClick={onCloseDeal}>
-            Close Deal
+          <CTAButton
+            size="sm"
+            onClick={onCloseDeal}
+            className={callStatus === "active" ? "!bg-[var(--color-danger)]" : ""}
+          >
+            {callStatus === "active" ? "End Call" : "Start Call"}
           </CTAButton>
         </div>
       </div>

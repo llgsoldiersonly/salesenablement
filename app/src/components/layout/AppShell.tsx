@@ -20,8 +20,13 @@ interface AppShellProps {
 export function AppShell({ report, recommendation, session, onLoadReport, onNewAssessment }: AppShellProps) {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [activeNav, setActiveNav] = useState("prospect");
+  const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
 
-  const callStatus = session.status;
+  const callActive = callStartedAt != null;
+  const callStatus: CallSession["status"] = callActive ? "active" : session.status;
+
+  const handleStartCall = () => setCallStartedAt(Date.now());
+  const handleEndCall = () => setCallStartedAt(null);
 
   return (
     <div className="flex flex-col h-full bg-surface">
@@ -29,6 +34,7 @@ export function AppShell({ report, recommendation, session, onLoadReport, onNewA
         activeTab={activeTab}
         onTabChange={setActiveTab}
         callStatus={callStatus}
+        onCloseDeal={callActive ? handleEndCall : handleStartCall}
         onLoadReport={onLoadReport}
         report={report}
       />
@@ -53,6 +59,11 @@ export function AppShell({ report, recommendation, session, onLoadReport, onNewA
         <RightRail
           session={session}
           firmState={report.firm.state}
+          callActive={callActive}
+          callStartedAt={callStartedAt}
+          report={report}
+          recommendation={recommendation}
+          onEndCall={handleEndCall}
         />
       </div>
 

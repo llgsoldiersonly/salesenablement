@@ -1,14 +1,42 @@
-import type { CallSession } from "../../types";
+import { CloserCockpit } from "../CloserCockpit";
+import type { CallSession, PackageRecommendation, ProbeReport } from "../../types";
 
 interface RightRailProps {
   session: CallSession;
   firmState: string;
+  callActive?: boolean;
+  callStartedAt?: number | null;
+  report?: ProbeReport;
+  recommendation?: PackageRecommendation;
+  onEndCall?: () => void;
 }
 
-export function RightRail({ session, firmState }: RightRailProps) {
+export function RightRail({
+  session,
+  firmState,
+  callActive,
+  callStartedAt,
+  report,
+  recommendation,
+  onEndCall,
+}: RightRailProps) {
+  // Live call mode — expand and host the closer cockpit.
+  if (callActive && callStartedAt && report && recommendation && onEndCall) {
+    return (
+      <aside className="w-[440px] shrink-0 h-full bg-surface border-l-2 border-l-brand flex flex-col py-5 px-4 overflow-hidden">
+        <CloserCockpit
+          report={report}
+          recommendation={recommendation}
+          callStartedAt={callStartedAt}
+          onEndCall={onEndCall}
+        />
+      </aside>
+    );
+  }
+
+  // Idle mode — original right rail.
   return (
     <aside className="w-[288px] shrink-0 h-full bg-surface border-l border-[var(--color-border)] flex flex-col py-5 px-4 gap-5 overflow-y-auto scrollbar-thin">
-
       {/* Live Call Notes */}
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-widest text-heading mb-3">
@@ -58,7 +86,6 @@ export function RightRail({ session, firmState }: RightRailProps) {
           Market Saturation Map
         </h2>
         <div className="rounded-[8px] overflow-hidden shadow-md bg-[#0F172A] aspect-square flex items-end relative">
-          {/* Placeholder map canvas — replace with real map integration */}
           <div className="absolute inset-0 opacity-40 pointer-events-none">
             {Array.from({ length: 24 }).map((_, i) => (
               <div
