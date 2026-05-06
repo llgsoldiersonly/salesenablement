@@ -399,6 +399,44 @@ export type Database = {
           },
         ]
       }
+      sales_invitations: {
+        Row: {
+          accepted_at: string | null
+          email: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["sales_role"]
+        }
+        Insert: {
+          accepted_at?: string | null
+          email: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          revoked_at?: string | null
+          role: Database["public"]["Enums"]["sales_role"]
+        }
+        Update: {
+          accepted_at?: string | null
+          email?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["sales_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "sales_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_notifications: {
         Row: {
           actor_id: string | null
@@ -499,6 +537,10 @@ export type Database = {
       claim_assessment: {
         Args: { p_assessment_id: string; p_minutes?: number; p_force?: boolean }
         Returns: string
+      }
+      is_email_allowed: {
+        Args: { p_email: string }
+        Returns: boolean
       }
       lookup_calendar_user: {
         Args: { p_token: string }

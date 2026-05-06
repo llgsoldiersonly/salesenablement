@@ -15,6 +15,7 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import { supabase } from "../lib/supabase";
+import { isEmailAllowed } from "../lib/invitations";
 import { Button, CTAButton } from "./ui/Button";
 import { Logo } from "./ui/Logo";
 
@@ -56,6 +57,16 @@ export function SignIn({ portalName = "Sales Enablement", redirectPath = "" }: S
     if (!email.trim()) return;
     setPhase("sending");
     setErrorMsg(null);
+
+    // Gate: only invited or existing users can sign in
+    const allowed = await isEmailAllowed(email.trim());
+    if (!allowed) {
+      setErrorMsg(
+        "This email isn't on the team list. Ask an admin to invite you, then try again.",
+      );
+      setPhase("error");
+      return;
+    }
 
     const redirectTo = window.location.origin + (redirectPath || "");
     const { error } = await supabase.auth.signInWithOtp({

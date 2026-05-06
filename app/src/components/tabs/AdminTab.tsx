@@ -22,6 +22,13 @@ import {
   type SalesRole,
 } from "../../lib/adminStats";
 import type { SalesProfile } from "../../lib/auth";
+import {
+  inviteTeammate,
+  getInvitations,
+  revokeInvitation,
+  deleteInvitation,
+  type Invitation,
+} from "../../lib/invitations";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -462,6 +469,160 @@ function TeamMemberRow({
   );
 }
 
+function InvitationsPanel() {
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<SalesRole>("opener");
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setInvitations(await getInvitations());
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void reload(); }, [reload]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting || !email.trim()) return;
+    setSubmitting(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    const res = await inviteTeammate(email, role);
+    setSubmitting(false);
+    if (res.ok) {
+      setSuccessMsg(`${email.trim()} can now sign in as ${role}.`);
+      setEmail("");
+      void reload();
+    } else {
+      setErrorMsg(res.error);
+    }
+  };
+
+  const handleRevoke = async (id: string) => {
+    await revokeInvitation(id);
+    void reload();
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteInvitation(id);
+    void reload();
+  };
+
+  const pending = invitations.filter((i) => !i.acceptedAt && !i.revokedAt);
+  const inactive = invitations.filter((i) => i.acceptedAt || i.revokedAt);
+
+  return (
+    <section className="bg-surface border border-[var(--color-border)] rounded-[8px] p-4 flex flex-col gap-4">
+      <div>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-heading mb-1">
+          Invite Teammate
+        </h2>
+        <p className="text-xs text-subtle">
+          Add an email below before sharing the app URL. Anyone NOT on this list will be rejected at sign-in.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="teammate@firm.com"
+          required
+          disabled={submitting}
+          className="flex-1 min-w-[220px] bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-1.5 text-xs text-body outline-none focus:ring-2 focus:ring-brand placeholder:text-subtle"
+        />
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value as SalesRole)}
+          disabled={submitting}
+          className="bg-surface border border-[var(--color-border)] rounded-[8px] px-2 py-1.5 text-xs text-body outline-none focus:ring-1 focus:ring-brand"
+        >
+          <option value="opener">Opener</option>
+          <option value="closer">Closer</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button
+          type="submit"
+          disabled={submitting || !email.trim()}
+          className="px-3 py-1.5 rounded-[8px] bg-brand text-white text-xs font-semibold disabled:opacity-40 hover:brightness-110 transition-all"
+        >
+          {submitting ? "Sending…" : "Send invite"}
+        </button>
+      </form>
+
+      {errorMsg && (
+        <p className="text-2xs text-[var(--color-danger)]">{errorMsg}</p>
+      )}
+      {successMsg && (
+        <p className="text-2xs text-[var(--color-success)]">{successMsg}</p>
+      )}
+
+      {!loading && pending.length > 0 && (
+        <div>
+          <p className="text-2xs uppercase tracking-wider font-semibold text-subtle mb-2">
+            Pending ({pending.length})
+          </p>
+          <div className="flex flex-col gap-1">
+            {pending.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex items-center gap-2 px-3 py-2 rounded-[8px] border border-[var(--color-border)] bg-surface text-xs"
+              >
+                <span className="flex-1 min-w-0">
+                  <span className="font-medium text-heading truncate">{inv.email}</span>
+                  <span className="ml-2 text-2xs uppercase tracking-wider text-subtle">{inv.role}</span>
+                </span>
+                <span className="text-2xs text-subtle">{timeAgo(inv.invitedAt)}</span>
+                <button
+                  onClick={() => handleRevoke(inv.id)}
+                  className="text-2xs text-[var(--color-danger)] hover:underline font-medium"
+                >
+                  Revoke
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!loading && inactive.length > 0 && (
+        <details className="text-xs text-subtle">
+          <summary className="cursor-pointer text-2xs uppercase tracking-wider font-semibold">
+            History ({inactive.length})
+          </summary>
+          <div className="flex flex-col gap-1 mt-2">
+            {inactive.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-[8px] border border-[var(--color-border)] bg-surface-2 opacity-70"
+              >
+                <span className="flex-1 truncate">
+                  <span className="text-body">{inv.email}</span>
+                  <span className="ml-2 text-2xs uppercase tracking-wider">
+                    {inv.acceptedAt ? "accepted" : "revoked"}
+                  </span>
+                </span>
+                <button
+                  onClick={() => handleDelete(inv.id)}
+                  className="text-2xs text-subtle hover:text-[var(--color-danger)] hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </section>
+  );
+}
+
 function TeamView({ currentUserId }: { currentUserId: string }) {
   const [profiles, setProfiles] = useState<SalesProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -497,6 +658,8 @@ function TeamView({ currentUserId }: { currentUserId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
+      <InvitationsPanel />
+
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-widest text-heading mb-3">
           Active ({active.length})
