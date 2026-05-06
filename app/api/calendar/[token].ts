@@ -24,16 +24,12 @@ interface CallRow {
   id: string;
   next_action_at: string;
   outcome: string | null;
-  notes: string | null;
   closer_id: string | null;
   opener_id: string;
   assessment_id: string;
   sales_assessments: {
-    firm_name: string;
     firm_city: string;
     firm_state: string;
-    contact_name: string | null;
-    contact_phone: string | null;
   } | null;
 }
 
@@ -76,21 +72,13 @@ function buildIcs(rows: CallRow[]): string {
   for (const c of rows) {
     if (!c.next_action_at) continue;
     const a = c.sales_assessments;
-    const firm = a?.firm_name ?? "Lead";
     const titleVerb =
       c.outcome === "callback_requested" ? "Callback" : "Follow-up";
-    const summary = `${titleVerb}: ${firm}`;
+    const location = [a?.firm_city, a?.firm_state].filter(Boolean).join(", ");
+    const summary = location ? `${titleVerb}: ${location}` : titleVerb;
 
     const start = new Date(c.next_action_at);
     const end = new Date(start.getTime() + 30 * 60 * 1000);
-
-    const descParts: string[] = [];
-    if (a?.contact_name) descParts.push(`Contact: ${a.contact_name}`);
-    if (a?.contact_phone) descParts.push(`Phone: ${a.contact_phone}`);
-    if (a?.firm_city || a?.firm_state) {
-      descParts.push(`Location: ${[a?.firm_city, a?.firm_state].filter(Boolean).join(", ")}`);
-    }
-    if (c.notes) descParts.push(`\nLast call notes:\n${c.notes}`);
 
     lines.push(
       "BEGIN:VEVENT",
@@ -99,8 +87,6 @@ function buildIcs(rows: CallRow[]): string {
       `DTSTART:${toIcsDate(start.toISOString())}`,
       `DTEND:${toIcsDate(end.toISOString())}`,
       `SUMMARY:${escapeIcs(summary)}`,
-      descParts.length > 0 ? `DESCRIPTION:${escapeIcs(descParts.join("\n"))}` : "",
-      a?.contact_phone ? `LOCATION:${escapeIcs(`Phone: ${a.contact_phone}`)}` : "",
       "END:VEVENT",
     );
   }
@@ -143,7 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const { data: rows, error: callsErr } = await supabase
     .from("sales_calls")
     .select(
-      "id, next_action_at, outcome, notes, closer_id, opener_id, assessment_id, sales_assessments!inner(firm_name, firm_city, firm_state, contact_name, contact_phone)",
+      "id, next_action_at, outcome, closer_id, opener_id, assessment_id, sales_assessments!inner(firm_city, firm_state)",
     )
     .or(`closer_id.eq.${userId},opener_id.eq.${userId}`)
     .not("next_action_at", "is", null);
