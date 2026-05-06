@@ -121,7 +121,7 @@ export function LeadQueue({
       }, 800);
     };
     const channel = supabase
-      .channel("lead-queue-watch")
+      .channel(`lead-queue-watch:${currentUserId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "sales_assessments" }, debounced)
       .on("postgres_changes", { event: "*", schema: "public", table: "sales_calls" }, debounced)
       .on("postgres_changes", { event: "*", schema: "public", table: "sales_assessment_notes" }, debounced)
@@ -130,7 +130,7 @@ export function LeadQueue({
       if (timer) clearTimeout(timer);
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [currentUserId]);
 
   const counts = useMemo(() => {
     const c: Record<FilterKey, number> = {

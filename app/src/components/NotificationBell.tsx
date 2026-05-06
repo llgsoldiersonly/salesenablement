@@ -7,6 +7,7 @@ import {
 } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 import { setActiveReport } from "../lib/storage";
+import { useAuth } from "../lib/auth";
 
 const TYPE_ICONS: Record<string, string> = {
   coach_note: "🎯",
@@ -34,6 +35,7 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ onOpenAssessment }: NotificationBellProps) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,18 +52,24 @@ export function NotificationBell({ onOpenAssessment }: NotificationBellProps) {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
     const channel = supabase
-      .channel("notifications-watch")
+      .channel(`notifications-watch:${user.id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "sales_notifications" },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "sales_notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
         () => void reload(),
       )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   // Click outside to close
   useEffect(() => {

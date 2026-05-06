@@ -77,8 +77,6 @@ export function AppShell({ report, recommendation, session, onLoadReport, onNewA
         </main>
 
         <RightRail
-          session={session}
-          firmState={report.firm.state}
           callActive={callActive}
           callStartedAt={callStartedAt}
           report={report}
@@ -97,18 +95,10 @@ export function AppShell({ report, recommendation, session, onLoadReport, onNewA
       <CalendarSyncDialog open={calendarOpen} onClose={() => setCalendarOpen(false)} />
 
       {/* Footer */}
-      <footer className="shrink-0 bg-surface border-t border-[var(--color-border)] px-6 py-2 flex items-center justify-between">
-        <div className="flex gap-4">
-          {["Terms of Service", "Privacy Policy", "Compliance Shield"].map((link) => (
-            <a key={link} href="#" className="text-2xs text-subtle hover:text-body transition-colors">
-              {link}
-            </a>
-          ))}
-        </div>
-        <p className="text-2xs text-subtle text-center flex-1 px-4">
-          Projection ≠ guarantee. Results based on algorithmic estimation and historical market
-          data for {report.firm.name}® {new Date().getFullYear()} LegalMarketing Compliance.
-          All information presented is confidential and for internal use only.
+      <footer className="shrink-0 bg-surface border-t border-[var(--color-border)] px-6 py-2">
+        <p className="text-2xs text-subtle text-center">
+          Projections are estimates, not guarantees. Confidential — for internal
+          use only. © {new Date().getFullYear()} Lucrative Legal Group.
         </p>
       </footer>
     </div>
