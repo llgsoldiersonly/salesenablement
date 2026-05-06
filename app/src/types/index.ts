@@ -108,7 +108,7 @@ export interface PackageRecommendation {
 
 /* ── Tab routing ─────────────────────────────────────────────────────── */
 
-export type TabId = "overview" | "intake" | "competitors" | "calculator" | "notes";
+export type TabId = "overview" | "intake" | "competitors" | "calculator" | "notes" | "admin";
 
 /* ── Live call session state ─────────────────────────────────────────── */
 

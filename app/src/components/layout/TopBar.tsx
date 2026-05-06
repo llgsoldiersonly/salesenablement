@@ -6,7 +6,7 @@ import { ShareButton } from "../ShareButton";
 import { useAuth } from "../../lib/auth";
 import type { ProbeReport, TabId } from "../../types";
 
-const TABS: { id: TabId; label: string }[] = [
+const BASE_TABS: { id: TabId; label: string }[] = [
   { id: "overview",     label: "Overview" },
   { id: "intake",       label: "Site Audit" },
   { id: "competitors",  label: "Competitors" },
@@ -26,6 +26,9 @@ interface TopBarProps {
 export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoadReport, report }: TopBarProps) {
   const { profile, role, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const tabs = role === "admin"
+    ? [...BASE_TABS, { id: "admin" as TabId, label: "Team" }]
+    : BASE_TABS;
   const initials = (profile?.full_name ?? profile?.email ?? "?")
     .split(/\s+|@/)
     .filter(Boolean)
@@ -121,7 +124,7 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
 
       {/* Tab strip */}
       <div className="flex items-end px-6 border-t border-[var(--color-border)]">
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
