@@ -1,7 +1,9 @@
 import { supabase } from "./supabase.js";
 import type { SalesProfile } from "./auth.js";
+import type { Database } from "./database.types.js";
 
 export type Period = "week" | "month";
+export type SalesRole = Database["public"]["Enums"]["sales_role"];
 
 export interface EmployeeStats {
   profile: SalesProfile;
@@ -87,6 +89,22 @@ export async function getTeamStats(period: Period): Promise<EmployeeStats[]> {
       topObjections,
     };
   });
+}
+
+export async function getAllProfiles(): Promise<SalesProfile[]> {
+  const { data } = await supabase
+    .from("sales_profiles")
+    .select("*")
+    .order("full_name");
+  return (data ?? []) as SalesProfile[];
+}
+
+export async function updateProfileRole(id: string, role: SalesRole): Promise<void> {
+  await supabase.from("sales_profiles").update({ role }).eq("id", id);
+}
+
+export async function setProfileActive(id: string, active: boolean): Promise<void> {
+  await supabase.from("sales_profiles").update({ active }).eq("id", id);
 }
 
 export async function getRecentActivity(limit = 30): Promise<ActivityItem[]> {

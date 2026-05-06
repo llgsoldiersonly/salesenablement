@@ -1,11 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "../../lib/supabase";
 import {
   getTeamStats,
   getRecentActivity,
+  getAllProfiles,
+  updateProfileRole,
+  setProfileActive,
   type EmployeeStats,
   type ActivityItem,
   type Period,
+  type SalesRole,
 } from "../../lib/adminStats";
+import type { SalesProfile } from "../../lib/auth";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -227,22 +233,194 @@ function EmployeeCard({ stats }: { stats: EmployeeStats }) {
   );
 }
 
+// ── Team management ───────────────────────────────────────────────────────────
+
+const ROLE_LABELS: Record<SalesRole, string> = {
+  opener: "Opener",
+  closer: "Closer",
+  admin: "Admin",
+};
+
+function TeamMemberRow({
+  profile,
+  currentUserId,
+  onRoleChange,
+  onActiveToggle,
+}: {
+  profile: SalesProfile;
+  currentUserId: string;
+  onRoleChange: (id: string, role: SalesRole) => Promise<void>;
+  onActiveToggle: (id: string, active: boolean) => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+  const name = profile.full_name ?? profile.email.split("@")[0];
+  const initials = name.split(/\s+/).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
+  const isSelf = profile.id === currentUserId;
+
+  const handleRole = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSaving(true);
+    await onRoleChange(profile.id, e.target.value as SalesRole);
+    setSaving(false);
+  };
+
+  const handleToggle = async () => {
+    setSaving(true);
+    await onActiveToggle(profile.id, !profile.active);
+    setSaving(false);
+  };
+
+  return (
+    <div
+      className={[
+        "flex items-center gap-3 px-4 py-3 bg-surface border border-[var(--color-border)] rounded-[8px]",
+        !profile.active ? "opacity-50" : "",
+      ].join(" ")}
+    >
+      <div className="w-8 h-8 rounded-[8px] bg-brand/10 text-brand text-xs font-semibold flex items-center justify-center shrink-0">
+        {initials || "?"}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-heading truncate">
+          {name}
+          {isSelf && (
+            <span className="ml-2 text-2xs text-subtle font-normal">(you)</span>
+          )}
+        </p>
+        <p className="text-xs text-subtle truncate">{profile.email}</p>
+      </div>
+
+      <select
+        value={profile.role}
+        onChange={handleRole}
+        disabled={saving || isSelf}
+        className="text-xs bg-surface border border-[var(--color-border)] rounded-[8px] px-2 py-1.5 text-body outline-none focus:ring-1 focus:ring-brand disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        {(["opener", "closer", "admin"] as SalesRole[]).map((r) => (
+          <option key={r} value={r}>
+            {ROLE_LABELS[r]}
+          </option>
+        ))}
+      </select>
+
+      <button
+        onClick={handleToggle}
+        disabled={saving || isSelf}
+        className={[
+          "text-xs px-3 py-1.5 rounded-[8px] border font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+          profile.active
+            ? "border-[var(--color-danger)]/40 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/5"
+            : "border-[var(--color-success)]/40 text-[var(--color-success)] hover:bg-[var(--color-success)]/5",
+        ].join(" ")}
+      >
+        {saving ? "…" : profile.active ? "Deactivate" : "Reactivate"}
+      </button>
+    </div>
+  );
+}
+
+function TeamView({ currentUserId }: { currentUserId: string }) {
+  const [profiles, setProfiles] = useState<SalesProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setProfiles(await getAllProfiles());
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void reload(); }, [reload]);
+
+  const handleRoleChange = async (id: string, role: SalesRole) => {
+    await updateProfileRole(id, role);
+    setProfiles((prev) => prev.map((p) => p.id === id ? { ...p, role } : p));
+  };
+
+  const handleActiveToggle = async (id: string, active: boolean) => {
+    await setProfileActive(id, active);
+    setProfiles((prev) => prev.map((p) => p.id === id ? { ...p, active } : p));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-sm text-subtle animate-pulse">Loading team…</p>
+      </div>
+    );
+  }
+
+  const active = profiles.filter((p) => p.active);
+  const inactive = profiles.filter((p) => !p.active);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-heading mb-3">
+          Active ({active.length})
+        </h2>
+        {active.length === 0 ? (
+          <p className="text-sm text-subtle">No active team members.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {active.map((p) => (
+              <TeamMemberRow
+                key={p.id}
+                profile={p}
+                currentUserId={currentUserId}
+                onRoleChange={handleRoleChange}
+                onActiveToggle={handleActiveToggle}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {inactive.length > 0 && (
+        <section>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-heading mb-3">
+            Deactivated ({inactive.length})
+          </h2>
+          <div className="flex flex-col gap-2">
+            {inactive.map((p) => (
+              <TeamMemberRow
+                key={p.id}
+                profile={p}
+                currentUserId={currentUserId}
+                onRoleChange={handleRoleChange}
+                onActiveToggle={handleActiveToggle}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function AdminTab() {
+  const [view, setView] = useState<"performance" | "team">("performance");
   const [period, setPeriod] = useState<Period>("week");
   const [stats, setStats] = useState<EmployeeStats[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
 
   useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setCurrentUserId(data.user.id);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (view !== "performance") return;
     setLoading(true);
     Promise.all([getTeamStats(period), getRecentActivity(30)]).then(([s, a]) => {
       setStats(s);
       setActivity(a);
       setLoading(false);
     });
-  }, [period]);
+  }, [period, view]);
 
   const insights = buildInsights(stats);
   const totalAssessments = stats.reduce((s, e) => s + e.assessments, 0);
@@ -260,25 +438,50 @@ export function AdminTab() {
           <h1 className="text-xl font-semibold text-heading">Team Dashboard</h1>
           <p className="text-sm text-subtle mt-0.5">Admin view · performance by rep</p>
         </div>
-        <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
-          {(["week", "month"] as Period[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={[
-                "px-4 py-1.5 text-sm font-medium transition-colors",
-                period === p
-                  ? "bg-brand text-white"
-                  : "text-subtle hover:text-heading bg-surface",
-              ].join(" ")}
-            >
-              {p === "week" ? "This Week" : "This Month"}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          {/* View toggle */}
+          <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
+            {(["performance", "team"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={[
+                  "px-4 py-1.5 text-sm font-medium transition-colors",
+                  view === v
+                    ? "bg-brand text-white"
+                    : "text-subtle hover:text-heading bg-surface",
+                ].join(" ")}
+              >
+                {v === "performance" ? "Performance" : "Manage Team"}
+              </button>
+            ))}
+          </div>
+
+          {/* Period toggle — only visible on performance view */}
+          {view === "performance" && (
+            <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
+              {(["week", "month"] as Period[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={[
+                    "px-4 py-1.5 text-sm font-medium transition-colors",
+                    period === p
+                      ? "bg-brand text-white"
+                      : "text-subtle hover:text-heading bg-surface",
+                  ].join(" ")}
+                >
+                  {p === "week" ? "This Week" : "This Month"}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {loading ? (
+      {view === "team" ? (
+        <TeamView currentUserId={currentUserId} />
+      ) : loading ? (
         <div className="flex-1 flex items-center justify-center py-20">
           <p className="text-sm text-subtle animate-pulse">Loading team data…</p>
         </div>
