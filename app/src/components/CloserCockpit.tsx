@@ -22,6 +22,7 @@ interface CloserCockpitProps {
 
 const NOTES_KEY_PREFIX = "llg.callNotes.";
 const TRIGGERS_KEY_PREFIX = "llg.callTriggers.";
+const OBJECTIONS_KEY_PREFIX = "llg.callObjections.";
 
 const CATEGORY_ICON: Record<TalkingPoint["category"], string> = {
   intake: "🚨",
@@ -55,6 +56,7 @@ export function CloserCockpit({
   const firmKey = report.firm.url || report.firm.name;
   const notesKey = NOTES_KEY_PREFIX + firmKey;
   const triggersKey = TRIGGERS_KEY_PREFIX + firmKey;
+  const objectionsKey = OBJECTIONS_KEY_PREFIX + firmKey;
 
   const talkingPoints = useMemo(
     () => buildTalkingPoints(report, recommendation),
@@ -68,6 +70,14 @@ export function CloserCockpit({
   const [hitTriggers, setHitTriggers] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(triggersKey);
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+  const [hitObjections, setHitObjections] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(objectionsKey);
       return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
     } catch {
       return new Set();
@@ -87,6 +97,12 @@ export function CloserCockpit({
         setFlashObjection(objectionId);
         if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
         flashTimerRef.current = setTimeout(() => setFlashObjection(null), 2000);
+        setHitObjections((prev) => {
+          if (prev.has(objectionId)) return prev;
+          const next = new Set(prev);
+          next.add(objectionId);
+          return next;
+        });
       }
 
       if (triggerIds.length > 0) {
@@ -134,6 +150,15 @@ export function CloserCockpit({
       localStorage.removeItem(triggersKey);
     }
   }, [hitTriggers, triggersKey]);
+
+  // Persist objections (auto-detected during transcription, plus manual taps)
+  useEffect(() => {
+    if (hitObjections.size > 0) {
+      localStorage.setItem(objectionsKey, JSON.stringify([...hitObjections]));
+    } else {
+      localStorage.removeItem(objectionsKey);
+    }
+  }, [hitObjections, objectionsKey]);
 
   // Stop transcription when call ends
   const handleEndCall = () => {
@@ -287,9 +312,16 @@ export function CloserCockpit({
                 objection={obj}
                 open={openObjection === obj.id}
                 flash={flashObjection === obj.id}
-                onToggle={() =>
-                  setOpenObjection((prev) => (prev === obj.id ? null : obj.id))
-                }
+                hit={hitObjections.has(obj.id)}
+                onToggle={() => {
+                  setOpenObjection((prev) => (prev === obj.id ? null : obj.id));
+                  setHitObjections((prev) => {
+                    if (prev.has(obj.id)) return prev;
+                    const next = new Set(prev);
+                    next.add(obj.id);
+                    return next;
+                  });
+                }}
               />
             ))}
           </div>
@@ -396,11 +428,13 @@ function ObjectionCard({
   objection,
   open,
   flash,
+  hit,
   onToggle,
 }: {
   objection: Objection;
   open: boolean;
   flash: boolean;
+  hit: boolean;
   onToggle: () => void;
 }) {
   return (
@@ -411,12 +445,19 @@ function ObjectionCard({
           ? "bg-brand/10 border-brand shadow-md"
           : open
             ? "bg-surface shadow-md border-[var(--color-border-strong)]"
-            : "bg-surface shadow-sm border-[var(--color-border)] hover:shadow-md",
+            : hit
+              ? "bg-[var(--color-success)]/5 border-[var(--color-success)]/30 hover:shadow-md"
+              : "bg-surface shadow-sm border-[var(--color-border)] hover:shadow-md",
       ].join(" ")}
     >
       <button onClick={onToggle} className="w-full text-left px-3 py-2 flex items-start gap-2">
         <span className="text-xs text-subtle shrink-0 mt-0.5">{open ? "−" : "+"}</span>
         <p className="text-xs text-body italic flex-1 leading-snug">"{objection.text}"</p>
+        {hit && !flash && (
+          <span className="shrink-0 text-2xs font-semibold text-[var(--color-success)] uppercase tracking-wider">
+            Logged
+          </span>
+        )}
         {flash && (
           <span className="shrink-0 text-2xs font-semibold text-brand uppercase tracking-wider">
             Detected
