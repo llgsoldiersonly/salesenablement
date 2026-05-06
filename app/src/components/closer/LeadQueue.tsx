@@ -4,6 +4,8 @@ import { Logo } from "../ui/Logo";
 import { getLeadQueue, type LeadQueueItem, type LeadStatus } from "../../lib/leadQueue";
 import { CallHistory } from "./CallHistory";
 import { CoachingView } from "./CoachingView";
+import { PipelineView } from "./PipelineView";
+import { claimLead } from "../../lib/claims";
 import { setActiveReport } from "../../lib/storage";
 import type { ProbeReport } from "../../types";
 
@@ -78,6 +80,7 @@ export function LeadQueue({
   const [leads, setLeads] = useState<LeadQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("open");
+  const [layout, setLayout] = useState<"list" | "pipeline">("list");
 
   const reload = async () => {
     setLoading(true);
@@ -117,7 +120,21 @@ export function LeadQueue({
     }
   }, [leads, filter, currentUserId]);
 
-  const handleOpen = (lead: LeadQueueItem) => {
+  const handleOpen = async (lead: LeadQueueItem) => {
+    const lockedByOther =
+      lead.claimedById && lead.claimedById !== currentUserId;
+    if (lockedByOther) {
+      const proceed = confirm(
+        `${lead.claimedByName ?? "Another rep"} is currently working this lead. Open anyway and take over the claim?`,
+      );
+      if (!proceed) return;
+    }
+    const result = await claimLead(lead.assessmentId, !!lockedByOther);
+    if (!result.ok && result.reason === "already_claimed") {
+      alert("Could not take over — please refresh and try again.");
+      void reload();
+      return;
+    }
     setActiveReport(lead.assessmentId);
     onOpenLead(lead.report);
   };
@@ -180,6 +197,22 @@ export function LeadQueue({
           </div>
           {topView === "queue" && (
             <div className="flex items-center gap-2">
+              <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
+                {(["list", "pipeline"] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setLayout(v)}
+                    className={[
+                      "px-2.5 py-1 text-xs font-medium transition-colors",
+                      layout === v
+                        ? "bg-brand text-white"
+                        : "text-subtle hover:text-heading bg-surface",
+                    ].join(" ")}
+                  >
+                    {v === "list" ? "List" : "Pipeline"}
+                  </button>
+                ))}
+              </div>
               <Button variant="neutral" size="sm" onClick={() => void reload()} disabled={loading}>
                 {loading ? "…" : "Refresh"}
               </Button>
@@ -203,8 +236,18 @@ export function LeadQueue({
           <CoachingView currentUserId={currentUserId} />
         )}
 
-        {/* Queue view — filter pills + lead list */}
-        {topView === "queue" && (
+        {/* Queue view — pipeline mode (no filter pills) */}
+        {topView === "queue" && layout === "pipeline" && (
+          <PipelineView
+            leads={leads}
+            loading={loading}
+            currentUserId={currentUserId}
+            onOpen={(l) => void handleOpen(l)}
+          />
+        )}
+
+        {/* Queue view — list mode with filter pills */}
+        {topView === "queue" && layout === "list" && (
           <>
             <div className="flex gap-2 flex-wrap">
               {(
@@ -263,7 +306,12 @@ export function LeadQueue({
             ) : (
               <div className="flex flex-col gap-2">
                 {visible.map((lead) => (
-                  <LeadCard key={lead.assessmentId} lead={lead} onOpen={() => handleOpen(lead)} />
+                  <LeadCard
+                    key={lead.assessmentId}
+                    lead={lead}
+                    currentUserId={currentUserId}
+                    onOpen={() => void handleOpen(lead)}
+                  />
                 ))}
               </div>
             )}
@@ -286,12 +334,22 @@ function nextActionLabel(iso: string): { label: string; overdue: boolean } {
   return { label: overdue ? `${rel} overdue` : `due in ${rel}`, overdue };
 }
 
-function LeadCard({ lead, onOpen }: { lead: LeadQueueItem; onOpen: () => void }) {
+function LeadCard({
+  lead,
+  currentUserId,
+  onOpen,
+}: {
+  lead: LeadQueueItem;
+  currentUserId: string;
+  onOpen: () => void;
+}) {
   const firm = lead.report.firm;
   const location = [firm.city, firm.state].filter(Boolean).join(", ");
   const subline = [location, firm.practiceArea].filter(Boolean).join(" · ");
   const stale = isStale(lead);
   const nextAction = isFollowUp(lead) ? nextActionLabel(lead.nextActionAt!) : null;
+  const claimedByMe = lead.claimedById === currentUserId;
+  const claimedByOther = !!lead.claimedById && !claimedByMe;
 
   return (
     <div className="bg-surface rounded-[8px] border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all duration-150 px-4 py-3 flex items-center gap-4">
@@ -306,6 +364,16 @@ function LeadCard({ lead, onOpen }: { lead: LeadQueueItem; onOpen: () => void })
           >
             {STATUS_LABELS[lead.status]}
           </span>
+          {claimedByOther && (
+            <span className="text-2xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded border bg-[#F59E0B]/15 text-[#B45309] border-[#F59E0B]/30">
+              🔒 {lead.claimedByName ?? "Locked"} · live
+            </span>
+          )}
+          {claimedByMe && (
+            <span className="text-2xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded border bg-brand/15 text-brand border-brand/30">
+              🔒 You · resume
+            </span>
+          )}
           {nextAction && (
             <span
               className={[
@@ -349,7 +417,7 @@ function LeadCard({ lead, onOpen }: { lead: LeadQueueItem; onOpen: () => void })
         </p>
       </div>
       <CTAButton size="sm" onClick={onOpen}>
-        Open
+        {claimedByMe ? "Resume" : claimedByOther ? "Take over" : "Open"}
       </CTAButton>
     </div>
   );

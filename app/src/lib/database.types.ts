@@ -97,6 +97,8 @@ export type Database = {
       sales_assessments: {
         Row: {
           brief_input_ready: boolean | null
+          claimed_by: string | null
+          claimed_until: string | null
           coverage_score: number | null
           created_at: string
           created_by: string
@@ -112,6 +114,8 @@ export type Database = {
         }
         Insert: {
           brief_input_ready?: boolean | null
+          claimed_by?: string | null
+          claimed_until?: string | null
           coverage_score?: number | null
           created_at?: string
           created_by: string
@@ -127,6 +131,8 @@ export type Database = {
         }
         Update: {
           brief_input_ready?: boolean | null
+          claimed_by?: string | null
+          claimed_until?: string | null
           coverage_score?: number | null
           created_at?: string
           created_by?: string
@@ -357,6 +363,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_assessment: {
+        Args: { p_assessment_id: string; p_minutes?: number; p_force?: boolean }
+        Returns: string
+      }
+      release_assessment: {
+        Args: { p_assessment_id: string }
+        Returns: undefined
+      }
       sales_current_role: {
         Args: never
         Returns: Database["public"]["Enums"]["sales_role"]

@@ -6,10 +6,13 @@ import { LoadReportDialog } from "./LoadReportDialog";
 import { NewAssessmentDialog } from "./NewAssessmentDialog";
 import { Logo } from "./ui/Logo";
 import { useAuth } from "../lib/auth";
+import { releaseLead } from "../lib/claims";
 import { recommendPackage } from "../lib/packages";
 import { getActiveReport, saveReport } from "../lib/storage";
 import { clearHash, readReportFromHash } from "../lib/share";
 import type { ProbeReport } from "../types";
+
+const ACTIVE_KEY = "llg.activeAssessment.v2";
 
 export function CloserApp() {
   const { session, profile, role, loading: authLoading, signOut } = useAuth();
@@ -134,7 +137,9 @@ export function CloserApp() {
         onLoadReport={() => setDialogOpen(true)}
         onNewAssessment={() => setProbeOpen(true)}
         onBackToQueue={() => {
-          localStorage.removeItem("llg.activeAssessment.v2");
+          const activeId = localStorage.getItem(ACTIVE_KEY);
+          if (activeId) void releaseLead(activeId);
+          localStorage.removeItem(ACTIVE_KEY);
           setReport(null);
         }}
         userName={profile?.full_name ?? profile?.email ?? undefined}

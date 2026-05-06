@@ -35,6 +35,9 @@ export interface LeadQueueItem {
   coverageScore: number | null;
   nextActionAt: string | null;
   lastActivityAt: string;
+  claimedById: string | null;
+  claimedByName: string | null;
+  claimedUntil: string | null;
 }
 
 interface AssessmentRow {
@@ -43,6 +46,8 @@ interface AssessmentRow {
   created_by: string;
   report: unknown;
   coverage_score: number | null;
+  claimed_by: string | null;
+  claimed_until: string | null;
 }
 
 interface CallRow {
@@ -79,7 +84,7 @@ function outcomeToStatus(outcome: CallOutcome | null): LeadStatus {
 export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
   const { data: assessments } = await supabase
     .from("sales_assessments")
-    .select("id, created_at, created_by, report, coverage_score")
+    .select("id, created_at, created_by, report, coverage_score, claimed_by, claimed_until")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -87,7 +92,12 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
   if (rows.length === 0) return [];
 
   const assessmentIds = rows.map((r) => r.id);
-  const openerIds = Array.from(new Set(rows.map((r) => r.created_by)));
+  const openerIds = Array.from(
+    new Set([
+      ...rows.map((r) => r.created_by),
+      ...rows.map((r) => r.claimed_by).filter((id): id is string => !!id),
+    ]),
+  );
 
   const [callsRes, notesRes, profilesRes] = await Promise.all([
     supabase
@@ -149,6 +159,12 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
       .sort()
       .at(-1)!;
 
+    const claimer = row.claimed_by ? profileById.get(row.claimed_by) : undefined;
+    const claimActive =
+      row.claimed_by &&
+      row.claimed_until &&
+      new Date(row.claimed_until).getTime() > Date.now();
+
     return {
       assessmentId: row.id,
       report: row.report as ProbeReport,
@@ -162,6 +178,9 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
       coverageScore: row.coverage_score,
       nextActionAt,
       lastActivityAt,
+      claimedById: claimActive ? row.claimed_by : null,
+      claimedByName: claimActive ? claimer?.full_name ?? claimer?.email ?? null : null,
+      claimedUntil: claimActive ? row.claimed_until : null,
     };
   });
 }
