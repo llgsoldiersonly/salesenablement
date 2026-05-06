@@ -42,6 +42,9 @@ export interface LeadQueueItem {
   contactPhone: string | null;
   contactEmail: string | null;
   contactRole: string | null;
+  assignedToId: string | null;
+  assignedToName: string | null;
+  assignedAt: string | null;
 }
 
 interface AssessmentRow {
@@ -56,6 +59,8 @@ interface AssessmentRow {
   contact_phone: string | null;
   contact_email: string | null;
   contact_role: string | null;
+  assigned_to: string | null;
+  assigned_at: string | null;
 }
 
 interface CallRow {
@@ -102,7 +107,7 @@ export async function getLeadQueue(
   let q = supabase
     .from("sales_assessments")
     .select(
-      "id, created_at, created_by, report, coverage_score, claimed_by, claimed_until, contact_name, contact_phone, contact_email, contact_role",
+      "id, created_at, created_by, report, coverage_score, claimed_by, claimed_until, contact_name, contact_phone, contact_email, contact_role, assigned_to, assigned_at",
     )
     .order("created_at", { ascending: false })
     .limit(limit + 1); // fetch one extra to detect hasMore
@@ -123,6 +128,7 @@ export async function getLeadQueue(
     new Set([
       ...rows.map((r) => r.created_by),
       ...rows.map((r) => r.claimed_by).filter((id): id is string => !!id),
+      ...rows.map((r) => r.assigned_to).filter((id): id is string => !!id),
     ]),
   );
 
@@ -212,6 +218,13 @@ export async function getLeadQueue(
       contactPhone: row.contact_phone,
       contactEmail: row.contact_email,
       contactRole: row.contact_role,
+      assignedToId: row.assigned_to,
+      assignedToName: row.assigned_to
+        ? profileById.get(row.assigned_to)?.full_name
+            ?? profileById.get(row.assigned_to)?.email
+            ?? null
+        : null,
+      assignedAt: row.assigned_at,
     };
   });
 

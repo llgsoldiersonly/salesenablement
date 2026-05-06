@@ -96,6 +96,9 @@ export type Database = {
       }
       sales_assessments: {
         Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
           brief_input_ready: boolean | null
           claimed_by: string | null
           claimed_until: string | null
@@ -489,6 +492,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_assessment: {
+        Args: { p_assessment_id: string; p_assignee_id: string | null }
+        Returns: undefined
+      }
       claim_assessment: {
         Args: { p_assessment_id: string; p_minutes?: number; p_force?: boolean }
         Returns: string

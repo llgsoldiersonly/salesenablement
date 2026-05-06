@@ -1,5 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
+import { LeadAssignmentView } from "../admin/LeadAssignmentView";
+import { CallsLibraryView } from "../admin/CallsLibraryView";
+import { ActivityAuditView } from "../admin/ActivityAuditView";
 import {
   getNotesForRep,
   addCoachNote,
@@ -540,7 +543,7 @@ function TeamView({ currentUserId }: { currentUserId: string }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function AdminTab() {
-  const [view, setView] = useState<"performance" | "team">("performance");
+  const [view, setView] = useState<"performance" | "team" | "leads" | "calls" | "audit">("performance");
   const [period, setPeriod] = useState<Period>("week");
   const [stats, setStats] = useState<EmployeeStats[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
@@ -582,18 +585,22 @@ export function AdminTab() {
         <div className="flex items-center gap-3">
           {/* View toggle */}
           <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
-            {(["performance", "team"] as const).map((v) => (
+            {(["performance", "team", "leads", "calls", "audit"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className={[
-                  "px-4 py-1.5 text-sm font-medium transition-colors",
+                  "px-3 py-1.5 text-xs font-medium transition-colors",
                   view === v
                     ? "bg-brand text-white"
                     : "text-subtle hover:text-heading bg-surface",
                 ].join(" ")}
               >
-                {v === "performance" ? "Performance" : "Manage Team"}
+                {v === "performance" ? "Performance"
+                  : v === "team" ? "Manage Team"
+                  : v === "leads" ? "Assign Leads"
+                  : v === "calls" ? "Calls"
+                  : "Audit"}
               </button>
             ))}
           </div>
@@ -622,6 +629,12 @@ export function AdminTab() {
 
       {view === "team" ? (
         <TeamView currentUserId={currentUserId} />
+      ) : view === "leads" ? (
+        <LeadAssignmentView />
+      ) : view === "calls" ? (
+        <CallsLibraryView />
+      ) : view === "audit" ? (
+        <ActivityAuditView />
       ) : loading ? (
         <div className="flex-1 flex items-center justify-center py-20">
           <p className="text-sm text-subtle animate-pulse">Loading team data…</p>

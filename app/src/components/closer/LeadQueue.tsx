@@ -24,7 +24,7 @@ interface LeadQueueProps {
   onSignOut: () => void;
 }
 
-type FilterKey = "follow_ups" | "cold" | "open" | "mine" | "all" | "won" | "lost";
+type FilterKey = "assigned" | "follow_ups" | "cold" | "open" | "mine" | "all" | "won" | "lost";
 
 const STALE_DAYS = 7;
 const STALE_MS = STALE_DAYS * 24 * 60 * 60 * 1000;
@@ -134,9 +134,10 @@ export function LeadQueue({
 
   const counts = useMemo(() => {
     const c: Record<FilterKey, number> = {
-      follow_ups: 0, cold: 0, open: 0, mine: 0, all: leads.length, won: 0, lost: 0,
+      assigned: 0, follow_ups: 0, cold: 0, open: 0, mine: 0, all: leads.length, won: 0, lost: 0,
     };
     leads.forEach((l) => {
+      if (l.assignedToId === currentUserId) c.assigned += 1;
       if (isFollowUp(l)) c.follow_ups += 1;
       if (isStale(l)) c.cold += 1;
       if (l.status === "open") c.open += 1;
@@ -149,6 +150,7 @@ export function LeadQueue({
 
   const filtered = useMemo(() => {
     switch (filter) {
+      case "assigned": return leads.filter((l) => l.assignedToId === currentUserId);
       case "follow_ups":
         return leads
           .filter(isFollowUp)
@@ -323,8 +325,28 @@ export function LeadQueue({
           <CoachingView currentUserId={currentUserId} />
         )}
 
+        {/* First-run onboarding (empty for the whole team) */}
+        {topView === "queue" && !loading && leads.length === 0 && (
+          <div className="border border-dashed border-[var(--color-border-strong)] rounded-[8px] p-10 text-center bg-surface">
+            <p className="text-2xl mb-2" aria-hidden>👋</p>
+            <p className="text-base text-heading font-semibold mb-1">
+              Welcome to the Closer Portal
+            </p>
+            <p className="text-xs text-subtle leading-relaxed max-w-sm mx-auto mb-4">
+              No leads in the queue yet. Once an opener runs an assessment on a
+              firm, it shows up here. You can also start your own from the top
+              right.
+            </p>
+            <p className="text-2xs text-subtle leading-relaxed max-w-sm mx-auto">
+              Tip: open a lead to claim it for 15 min, log calls with End Call,
+              schedule follow-ups that sync to your Outlook/Google calendar, and
+              keep team notes on each lead.
+            </p>
+          </div>
+        )}
+
         {/* Queue view — pipeline mode (no filter pills) */}
-        {topView === "queue" && layout === "pipeline" && (
+        {topView === "queue" && layout === "pipeline" && leads.length > 0 && (
           <PipelineView
             leads={leads}
             loading={loading}
@@ -334,11 +356,12 @@ export function LeadQueue({
         )}
 
         {/* Queue view — list mode with filter pills */}
-        {topView === "queue" && layout === "list" && (
+        {topView === "queue" && layout === "list" && leads.length > 0 && (
           <>
             <div className="flex gap-2 flex-wrap">
               {(
                 [
+                  ["assigned", "Assigned to me"],
                   ["follow_ups", "Follow-ups"],
                   ["cold", "Going Cold"],
                   ["open", "Open"],
@@ -449,6 +472,8 @@ function LeadCard({
   const nextAction = isFollowUp(lead) ? nextActionLabel(lead.nextActionAt!) : null;
   const claimedByMe = lead.claimedById === currentUserId;
   const claimedByOther = !!lead.claimedById && !claimedByMe;
+  const assignedToMe = lead.assignedToId === currentUserId;
+  const assignedToOther = !!lead.assignedToId && !assignedToMe;
 
   return (
     <div className="bg-surface rounded-[8px] border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all duration-150 px-4 py-3 flex items-center gap-4">
@@ -463,6 +488,16 @@ function LeadCard({
           >
             {STATUS_LABELS[lead.status]}
           </span>
+          {assignedToMe && (
+            <span className="text-2xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded border bg-[#6366F1]/15 text-[#4338CA] border-[#6366F1]/30">
+              📌 Assigned to you
+            </span>
+          )}
+          {assignedToOther && (
+            <span className="text-2xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded border bg-surface text-subtle border-[var(--color-border)]">
+              📌 Assigned · {lead.assignedToName ?? "—"}
+            </span>
+          )}
           {claimedByOther && (
             <span className="text-2xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded border bg-[#F59E0B]/15 text-[#B45309] border-[#F59E0B]/30">
               🔒 {lead.claimedByName ?? "Locked"} · live

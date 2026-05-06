@@ -1,5 +1,40 @@
 import { useEffect, useState } from "react";
+import { Button } from "../ui/Button";
 import { getCloserHistory, type HistoryCall, type CloserStats, type CallOutcome } from "../../lib/closerHistory";
+
+function historyToCsv(calls: HistoryCall[]): string {
+  const header = [
+    "started_at", "firm_name", "city", "state",
+    "outcome", "package_sold", "contract_value_dollars",
+    "duration_seconds", "objections", "triggers", "notes",
+  ];
+  const escape = (v: unknown): string => {
+    if (v === null || v === undefined) return "";
+    const s = Array.isArray(v) ? v.join("|") : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const rows = calls.map((c) => [
+    c.startedAt, c.firmName, c.firmCity, c.firmState,
+    c.outcome ?? "", c.packageSold ?? "",
+    c.contractValueCents != null ? (c.contractValueCents / 100).toFixed(2) : "",
+    c.durationSeconds ?? "",
+    c.objectionsHit ?? [], c.triggersHit ?? [],
+    c.notes ?? "",
+  ].map(escape).join(","));
+  return [header.join(","), ...rows].join("\n");
+}
+
+function downloadCsv(filename: string, csv: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 interface CallHistoryProps {
   currentUserId: string;
@@ -197,20 +232,35 @@ export function CallHistory({ currentUserId }: CallHistoryProps) {
     );
   }
 
+  const handleExport = () => {
+    const csv = historyToCsv(calls);
+    const ts = new Date().toISOString().slice(0, 10);
+    downloadCsv(`my-calls-${ts}.csv`, csv);
+  };
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Stat tiles */}
+      {/* Stat tiles + export */}
       {stats && (
-        <div className="grid grid-cols-5 gap-3">
-          <StatTile label="Total Calls" value={stats.totalCalls} />
-          <StatTile label="Closed Won" value={stats.won} color="success" />
-          <StatTile label="Closed Lost" value={stats.lost} color="danger" />
-          <StatTile
-            label="Win Rate"
-            value={`${stats.winRate}%`}
-            color={stats.totalCalls === 0 ? undefined : stats.winRate >= 30 ? "success" : "danger"}
-          />
-          <StatTile label="My Revenue" value={formatCents(stats.revenueCents)} color="brand" />
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-5 gap-3">
+            <StatTile label="Total Calls" value={stats.totalCalls} />
+            <StatTile label="Closed Won" value={stats.won} color="success" />
+            <StatTile label="Closed Lost" value={stats.lost} color="danger" />
+            <StatTile
+              label="Win Rate"
+              value={`${stats.winRate}%`}
+              color={stats.totalCalls === 0 ? undefined : stats.winRate >= 30 ? "success" : "danger"}
+            />
+            <StatTile label="My Revenue" value={formatCents(stats.revenueCents)} color="brand" />
+          </div>
+          {calls.length > 0 && (
+            <div className="flex justify-end">
+              <Button variant="neutral" size="sm" onClick={handleExport}>
+                Export CSV
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
