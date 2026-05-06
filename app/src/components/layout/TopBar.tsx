@@ -7,13 +7,22 @@ import { NotificationBell } from "../NotificationBell";
 import { useAuth } from "../../lib/auth";
 import type { ProbeReport, TabId } from "../../types";
 
-const BASE_TABS: { id: TabId; label: string }[] = [
-  { id: "overview",     label: "Overview" },
-  { id: "intake",       label: "Site Audit" },
-  { id: "competitors",  label: "Competitors" },
-  { id: "calculator",   label: "Calculator" },
-  { id: "notes",        label: "Notes" },
-  { id: "activity",     label: "Activity" },
+// Opener: simplified prospecting tools only — no calculator or activity log
+const OPENER_TABS: { id: TabId; label: string }[] = [
+  { id: "overview",    label: "Overview" },
+  { id: "intake",      label: "Site Audit" },
+  { id: "competitors", label: "Competitors" },
+  { id: "notes",       label: "Notes" },
+];
+
+// Closer: full suite including ROAS calculator and activity history
+const CLOSER_TABS: { id: TabId; label: string }[] = [
+  { id: "overview",    label: "Overview" },
+  { id: "intake",      label: "Site Audit" },
+  { id: "competitors", label: "Competitors" },
+  { id: "calculator",  label: "Calculator" },
+  { id: "notes",       label: "Notes" },
+  { id: "activity",    label: "Activity" },
 ];
 
 interface TopBarProps {
@@ -29,9 +38,7 @@ interface TopBarProps {
 export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoadReport, report, onOpenSidebar }: TopBarProps) {
   const { profile, role, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const tabs = role === "admin"
-    ? [...BASE_TABS, { id: "admin" as TabId, label: "Team" }]
-    : BASE_TABS;
+  const tabs = role === "opener" ? OPENER_TABS : CLOSER_TABS;
   const initials = (profile?.full_name ?? profile?.email ?? "?")
     .split(/\s+|@/)
     .filter(Boolean)
