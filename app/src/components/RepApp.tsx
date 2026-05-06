@@ -66,6 +66,16 @@ export default function RepApp() {
     return <SignIn />;
   }
 
+  // Redirect admins and closers to their dedicated portals
+  if (profile?.role === "admin") {
+    window.location.replace("/admin");
+    return null;
+  }
+  if (profile?.role === "closer") {
+    window.location.replace("/closers");
+    return null;
+  }
+
   const handleUseMock = () => {
     setReport(MOCK_REPORT);
     setDialogOpen(false);
