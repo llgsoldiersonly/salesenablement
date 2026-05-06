@@ -7,6 +7,7 @@ import { CalculatorTab } from "../tabs/CalculatorTab";
 import { IntakeTab } from "../tabs/IntakeTab";
 import { CompetitorsTab } from "../tabs/CompetitorsTab";
 import { NotesTab } from "../tabs/NotesTab";
+import { ActivityTab } from "../tabs/ActivityTab";
 import { AdminTab } from "../tabs/AdminTab";
 import { EndCallDialog } from "../EndCallDialog";
 import type { CallSession, PackageRecommendation, ProbeReport, TabId } from "../../types";
@@ -68,6 +69,7 @@ export function AppShell({ report, recommendation, session, onLoadReport, onNewA
           {activeTab === "competitors" && <CompetitorsTab report={report} />}
           {activeTab === "calculator"  && <CalculatorTab  firm={report.firm} />}
           {activeTab === "notes"       && <NotesTab />}
+          {activeTab === "activity"    && <ActivityTab />}
           {activeTab === "admin"       && <AdminTab />}
         </main>
 

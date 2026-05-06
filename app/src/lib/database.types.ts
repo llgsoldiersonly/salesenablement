@@ -210,6 +210,7 @@ export type Database = {
           duration_seconds: number | null
           ended_at: string | null
           id: string
+          next_action_at: string | null
           notes: string | null
           objections_hit: string[] | null
           opener_id: string
@@ -227,6 +228,7 @@ export type Database = {
           duration_seconds?: number | null
           ended_at?: string | null
           id?: string
+          next_action_at?: string | null
           notes?: string | null
           objections_hit?: string[] | null
           opener_id: string
@@ -244,6 +246,7 @@ export type Database = {
           duration_seconds?: number | null
           ended_at?: string | null
           id?: string
+          next_action_at?: string | null
           notes?: string | null
           objections_hit?: string[] | null
           opener_id?: string

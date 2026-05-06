@@ -33,6 +33,8 @@ export interface LeadQueueItem {
   lastCallCloserId: string | null;
   callCount: number;
   coverageScore: number | null;
+  nextActionAt: string | null;
+  lastActivityAt: string;
 }
 
 interface AssessmentRow {
@@ -47,6 +49,12 @@ interface CallRow {
   assessment_id: string;
   closer_id: string | null;
   outcome: CallOutcome | null;
+  created_at: string;
+  next_action_at: string | null;
+}
+
+interface NoteRow {
+  assessment_id: string;
   created_at: string;
 }
 
@@ -81,10 +89,15 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
   const assessmentIds = rows.map((r) => r.id);
   const openerIds = Array.from(new Set(rows.map((r) => r.created_by)));
 
-  const [callsRes, profilesRes] = await Promise.all([
+  const [callsRes, notesRes, profilesRes] = await Promise.all([
     supabase
       .from("sales_calls")
-      .select("assessment_id, closer_id, outcome, created_at")
+      .select("assessment_id, closer_id, outcome, created_at, next_action_at")
+      .in("assessment_id", assessmentIds)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("sales_assessment_notes")
+      .select("assessment_id, created_at")
       .in("assessment_id", assessmentIds)
       .order("created_at", { ascending: false }),
     supabase
@@ -94,6 +107,7 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
   ]);
 
   const calls = (callsRes.data ?? []) as CallRow[];
+  const notes = (notesRes.data ?? []) as NoteRow[];
   const profiles = (profilesRes.data ?? []) as ProfileRow[];
   const profileById = new Map(profiles.map((p) => [p.id, p]));
 
@@ -104,6 +118,13 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
     callsByAssessment.set(c.assessment_id, list);
   });
 
+  const latestNoteByAssessment = new Map<string, string>();
+  notes.forEach((n) => {
+    if (!latestNoteByAssessment.has(n.assessment_id)) {
+      latestNoteByAssessment.set(n.assessment_id, n.created_at);
+    }
+  });
+
   return rows.map((row) => {
     const myCalls = callsByAssessment.get(row.id) ?? [];
     const latest = myCalls[0];
@@ -112,6 +133,21 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
     const status: LeadStatus = latest
       ? outcomeToStatus(latest.outcome)
       : "open";
+
+    // Pull the soonest upcoming next_action_at across all calls (most recent
+    // call wins if there are duplicates — model only sets it on the latest).
+    const nextActionAt =
+      myCalls.find((c) => c.next_action_at !== null)?.next_action_at ?? null;
+
+    const noteAt = latestNoteByAssessment.get(row.id);
+    const lastActivityAt = [
+      latest?.created_at,
+      noteAt,
+      row.created_at,
+    ]
+      .filter((d): d is string => !!d)
+      .sort()
+      .at(-1)!;
 
     return {
       assessmentId: row.id,
@@ -124,6 +160,8 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
       lastCallCloserId: latest?.closer_id ?? null,
       callCount: myCalls.length,
       coverageScore: row.coverage_score,
+      nextActionAt,
+      lastActivityAt,
     };
   });
 }

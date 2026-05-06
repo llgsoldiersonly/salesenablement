@@ -12,6 +12,7 @@ const BASE_TABS: { id: TabId; label: string }[] = [
   { id: "competitors",  label: "Competitors" },
   { id: "calculator",   label: "Calculator" },
   { id: "notes",        label: "Notes" },
+  { id: "activity",     label: "Activity" },
 ];
 
 interface TopBarProps {

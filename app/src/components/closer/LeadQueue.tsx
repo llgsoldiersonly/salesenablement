@@ -18,7 +18,21 @@ interface LeadQueueProps {
   onSignOut: () => void;
 }
 
-type FilterKey = "open" | "mine" | "all" | "won" | "lost";
+type FilterKey = "follow_ups" | "cold" | "open" | "mine" | "all" | "won" | "lost";
+
+const STALE_DAYS = 7;
+const STALE_MS = STALE_DAYS * 24 * 60 * 60 * 1000;
+const ACTIVE_STATUSES: LeadStatus[] = ["open", "in_progress", "follow_up", "callback", "no_decision"];
+
+function isStale(lead: LeadQueueItem): boolean {
+  if (!ACTIVE_STATUSES.includes(lead.status)) return false;
+  return Date.now() - new Date(lead.lastActivityAt).getTime() > STALE_MS;
+}
+
+function isFollowUp(lead: LeadQueueItem): boolean {
+  if (!lead.nextActionAt) return false;
+  return ACTIVE_STATUSES.includes(lead.status);
+}
 
 const STATUS_LABELS: Record<LeadStatus, string> = {
   open: "Open",
@@ -74,8 +88,12 @@ export function LeadQueue({
   useEffect(() => { void reload(); }, []);
 
   const counts = useMemo(() => {
-    const c: Record<FilterKey, number> = { open: 0, mine: 0, all: leads.length, won: 0, lost: 0 };
+    const c: Record<FilterKey, number> = {
+      follow_ups: 0, cold: 0, open: 0, mine: 0, all: leads.length, won: 0, lost: 0,
+    };
     leads.forEach((l) => {
+      if (isFollowUp(l)) c.follow_ups += 1;
+      if (isStale(l)) c.cold += 1;
       if (l.status === "open") c.open += 1;
       if (l.lastCallCloserId === currentUserId) c.mine += 1;
       if (l.status === "won") c.won += 1;
@@ -86,6 +104,11 @@ export function LeadQueue({
 
   const visible = useMemo(() => {
     switch (filter) {
+      case "follow_ups":
+        return leads
+          .filter(isFollowUp)
+          .sort((a, b) => new Date(a.nextActionAt!).getTime() - new Date(b.nextActionAt!).getTime());
+      case "cold":  return leads.filter(isStale);
       case "open":  return leads.filter((l) => l.status === "open");
       case "mine":  return leads.filter((l) => l.lastCallCloserId === currentUserId);
       case "won":   return leads.filter((l) => l.status === "won");
@@ -186,6 +209,8 @@ export function LeadQueue({
             <div className="flex gap-2 flex-wrap">
               {(
                 [
+                  ["follow_ups", "Follow-ups"],
+                  ["cold", "Going Cold"],
                   ["open", "Open"],
                   ["mine", "My Calls"],
                   ["all", "All"],
@@ -224,11 +249,15 @@ export function LeadQueue({
               <div className="border border-dashed border-[var(--color-border-strong)] rounded-[8px] p-10 text-center bg-surface">
                 <p className="text-sm text-heading font-medium">No leads in this view.</p>
                 <p className="text-xs text-subtle mt-1">
-                  {filter === "open"
-                    ? "Every assessment has a logged call. Try All or run a new assessment."
-                    : filter === "mine"
-                      ? "You haven't logged any calls yet."
-                      : "Try a different filter or run a new assessment."}
+                  {filter === "follow_ups"
+                    ? "No leads have a scheduled follow-up. Closers set this on EndCall."
+                    : filter === "cold"
+                      ? `No active leads have been silent for ${STALE_DAYS}+ days.`
+                      : filter === "open"
+                        ? "Every assessment has a logged call. Try All or run a new assessment."
+                        : filter === "mine"
+                          ? "You haven't logged any calls yet."
+                          : "Try a different filter or run a new assessment."}
                 </p>
               </div>
             ) : (
@@ -245,10 +274,24 @@ export function LeadQueue({
   );
 }
 
+function nextActionLabel(iso: string): { label: string; overdue: boolean } {
+  const ms = new Date(iso).getTime() - Date.now();
+  const overdue = ms < 0;
+  const absMs = Math.abs(ms);
+  const mins = Math.floor(absMs / 60000);
+  let rel: string;
+  if (mins < 60) rel = `${mins}m`;
+  else if (mins < 60 * 24) rel = `${Math.floor(mins / 60)}h`;
+  else rel = `${Math.floor(mins / 60 / 24)}d`;
+  return { label: overdue ? `${rel} overdue` : `due in ${rel}`, overdue };
+}
+
 function LeadCard({ lead, onOpen }: { lead: LeadQueueItem; onOpen: () => void }) {
   const firm = lead.report.firm;
   const location = [firm.city, firm.state].filter(Boolean).join(", ");
   const subline = [location, firm.practiceArea].filter(Boolean).join(" · ");
+  const stale = isStale(lead);
+  const nextAction = isFollowUp(lead) ? nextActionLabel(lead.nextActionAt!) : null;
 
   return (
     <div className="bg-surface rounded-[8px] border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all duration-150 px-4 py-3 flex items-center gap-4">
@@ -263,6 +306,24 @@ function LeadCard({ lead, onOpen }: { lead: LeadQueueItem; onOpen: () => void })
           >
             {STATUS_LABELS[lead.status]}
           </span>
+          {nextAction && (
+            <span
+              className={[
+                "text-2xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded border",
+                nextAction.overdue
+                  ? "bg-[var(--color-danger)]/15 text-[var(--color-danger)] border-[var(--color-danger)]/30"
+                  : "bg-[#0EA5E9]/15 text-[#0369A1] border-[#0EA5E9]/30",
+              ].join(" ")}
+            >
+              {nextAction.overdue ? "⚠ " : "⏰ "}
+              {nextAction.label}
+            </span>
+          )}
+          {stale && (
+            <span className="text-2xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded border bg-[#F59E0B]/15 text-[#B45309] border-[#F59E0B]/30">
+              ❄ Cold
+            </span>
+          )}
           {lead.callCount > 1 && (
             <span className="text-2xs text-subtle">· {lead.callCount} calls</span>
           )}
