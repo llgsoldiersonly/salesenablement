@@ -8,6 +8,7 @@ import { PipelineView } from "./PipelineView";
 import { claimLead } from "../../lib/claims";
 import { formatPhoneDisplay, phoneTelHref } from "../../lib/leadContact";
 import { setActiveReport } from "../../lib/storage";
+import { supabase } from "../../lib/supabase";
 import { CalendarSyncDialog } from "../CalendarSyncDialog";
 import type { ProbeReport } from "../../types";
 
@@ -85,14 +86,50 @@ export function LeadQueue({
   const [layout, setLayout] = useState<"list" | "pipeline">("list");
   const [search, setSearch] = useState("");
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const reload = async () => {
     setLoading(true);
-    setLeads(await getLeadQueue(50));
+    const page = await getLeadQueue({ limit: 50 });
+    setLeads(page.items);
+    setHasMore(page.hasMore);
     setLoading(false);
   };
 
+  const loadMore = async () => {
+    if (loadingMore || !hasMore || leads.length === 0) return;
+    setLoadingMore(true);
+    const cursor = leads[leads.length - 1].createdAt;
+    const page = await getLeadQueue({ limit: 50, before: cursor });
+    setLeads((prev) => [...prev, ...page.items]);
+    setHasMore(page.hasMore);
+    setLoadingMore(false);
+  };
+
   useEffect(() => { void reload(); }, []);
+
+  // Live updates: any change to assessments, calls, or notes refreshes the queue.
+  // Debounced so a burst of edits doesn't thrash the network.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const debounced = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void reload();
+      }, 800);
+    };
+    const channel = supabase
+      .channel("lead-queue-watch")
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales_assessments" }, debounced)
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales_calls" }, debounced)
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales_assessment_notes" }, debounced)
+      .subscribe();
+    return () => {
+      if (timer) clearTimeout(timer);
+      void supabase.removeChannel(channel);
+    };
+  }, []);
 
   const counts = useMemo(() => {
     const c: Record<FilterKey, number> = {
@@ -356,6 +393,18 @@ export function LeadQueue({
                     onOpen={() => void handleOpen(lead)}
                   />
                 ))}
+                {hasMore && !search && (
+                  <div className="flex justify-center py-2">
+                    <Button
+                      variant="neutral"
+                      size="sm"
+                      onClick={() => void loadMore()}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? "Loading…" : "Load more"}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </>

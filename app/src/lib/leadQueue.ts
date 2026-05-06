@@ -89,17 +89,34 @@ function outcomeToStatus(outcome: CallOutcome | null): LeadStatus {
   }
 }
 
-export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
-  const { data: assessments } = await supabase
+export interface LeadQueuePage {
+  items: LeadQueueItem[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
+export async function getLeadQueue(
+  options: { limit?: number; before?: string | null } = {},
+): Promise<LeadQueuePage> {
+  const limit = options.limit ?? 50;
+  let q = supabase
     .from("sales_assessments")
     .select(
       "id, created_at, created_by, report, coverage_score, claimed_by, claimed_until, contact_name, contact_phone, contact_email, contact_role",
     )
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(limit + 1); // fetch one extra to detect hasMore
 
-  const rows = (assessments ?? []) as AssessmentRow[];
-  if (rows.length === 0) return [];
+  if (options.before) {
+    q = q.lt("created_at", options.before);
+  }
+
+  const { data: assessments } = await q;
+
+  const allRows = (assessments ?? []) as AssessmentRow[];
+  const hasMore = allRows.length > limit;
+  const rows = hasMore ? allRows.slice(0, limit) : allRows;
+  if (rows.length === 0) return { items: [], hasMore: false, nextCursor: null };
 
   const assessmentIds = rows.map((r) => r.id);
   const openerIds = Array.from(
@@ -145,7 +162,7 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
     }
   });
 
-  return rows.map((row) => {
+  const items: LeadQueueItem[] = rows.map((row) => {
     const myCalls = callsByAssessment.get(row.id) ?? [];
     const latest = myCalls[0];
     const opener = profileById.get(row.created_by);
@@ -197,4 +214,10 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
       contactRole: row.contact_role,
     };
   });
+
+  return {
+    items,
+    hasMore,
+    nextCursor: hasMore ? rows[rows.length - 1].created_at : null,
+  };
 }

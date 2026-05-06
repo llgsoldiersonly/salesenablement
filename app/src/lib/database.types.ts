@@ -111,6 +111,7 @@ export type Database = {
           firm_practice_area: string
           firm_state: string
           firm_url: string
+          firm_url_normalized: string | null
           id: string
           recommendation: Json | null
           report: Json
