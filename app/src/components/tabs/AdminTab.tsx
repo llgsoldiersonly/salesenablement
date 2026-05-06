@@ -1,6 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import {
+  getNotesForRep,
+  addCoachNote,
+  updateCoachNote,
+  deleteCoachNote,
+  type CoachNote,
+} from "../../lib/coachNotes";
+import {
   getTeamStats,
   getRecentActivity,
   getAllProfiles,
@@ -241,6 +248,124 @@ const ROLE_LABELS: Record<SalesRole, string> = {
   admin: "Admin",
 };
 
+// ── Coach notes panel ─────────────────────────────────────────────────────────
+
+function timeAgoShort(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function CoachNotesPanel({ repId }: { repId: string }) {
+  const [notes, setNotes] = useState<CoachNote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
+
+  useEffect(() => {
+    void getNotesForRep(repId).then((n) => { setNotes(n); setLoading(false); });
+  }, [repId]);
+
+  const handleAdd = async () => {
+    if (!draft.trim()) return;
+    setSaving(true);
+    const note = await addCoachNote(repId, draft.trim());
+    if (note) setNotes((prev) => [note, ...prev]);
+    setDraft("");
+    setSaving(false);
+  };
+
+  const handleUpdate = async (id: string) => {
+    if (!editBody.trim()) return;
+    await updateCoachNote(id, editBody.trim());
+    setNotes((prev) => prev.map((n) => n.id === id ? { ...n, body: editBody.trim() } : n));
+    setEditingId(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteCoachNote(id);
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Compose */}
+      <div className="flex gap-2">
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Add a coaching note…"
+          rows={2}
+          className="flex-1 text-xs bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-2 text-body resize-none outline-none focus:ring-2 focus:ring-brand"
+        />
+        <button
+          onClick={() => void handleAdd()}
+          disabled={saving || !draft.trim()}
+          className="self-end text-xs px-3 py-2 rounded-[8px] bg-brand text-white font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
+        >
+          {saving ? "…" : "Save"}
+        </button>
+      </div>
+
+      {/* Existing notes */}
+      {loading ? (
+        <p className="text-xs text-subtle animate-pulse">Loading notes…</p>
+      ) : notes.length === 0 ? (
+        <p className="text-xs text-subtle italic">No coaching notes yet.</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {notes.map((note) => (
+            <div key={note.id} className="bg-surface border border-[var(--color-border)] rounded-[8px] px-3 py-2">
+              {editingId === note.id ? (
+                <div className="flex gap-2">
+                  <textarea
+                    value={editBody}
+                    onChange={(e) => setEditBody(e.target.value)}
+                    rows={2}
+                    autoFocus
+                    className="flex-1 text-xs bg-surface shadow-inset rounded-[6px] border border-[var(--color-border)] px-2 py-1.5 text-body resize-none outline-none focus:ring-2 focus:ring-brand"
+                  />
+                  <div className="flex flex-col gap-1 self-start">
+                    <button onClick={() => void handleUpdate(note.id)} className="text-2xs text-brand font-semibold hover:underline">Save</button>
+                    <button onClick={() => setEditingId(null)} className="text-2xs text-subtle hover:underline">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <p className="text-xs text-body leading-relaxed flex-1 whitespace-pre-wrap">{note.body}</p>
+                  <div className="flex gap-2 shrink-0 mt-0.5">
+                    <button
+                      onClick={() => { setEditingId(note.id); setEditBody(note.body); }}
+                      className="text-2xs text-subtle hover:text-brand transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => void handleDelete(note.id)}
+                      className="text-2xs text-subtle hover:text-[var(--color-danger)] transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )}
+              <p className="text-2xs text-subtle mt-1">
+                {note.authorName ?? "Admin"} · {timeAgoShort(note.createdAt)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TeamMemberRow({
   profile,
   currentUserId,
@@ -253,6 +378,7 @@ function TeamMemberRow({
   onActiveToggle: (id: string, active: boolean) => Promise<void>;
 }) {
   const [saving, setSaving] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const name = profile.full_name ?? profile.email.split("@")[0];
   const initials = name.split(/\s+/).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
   const isSelf = profile.id === currentUserId;
@@ -272,48 +398,63 @@ function TeamMemberRow({
   return (
     <div
       className={[
-        "flex items-center gap-3 px-4 py-3 bg-surface border border-[var(--color-border)] rounded-[8px]",
+        "bg-surface border border-[var(--color-border)] rounded-[8px] overflow-hidden",
         !profile.active ? "opacity-50" : "",
       ].join(" ")}
     >
-      <div className="w-8 h-8 rounded-[8px] bg-brand/10 text-brand text-xs font-semibold flex items-center justify-center shrink-0">
-        {initials || "?"}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-heading truncate">
-          {name}
-          {isSelf && (
-            <span className="ml-2 text-2xs text-subtle font-normal">(you)</span>
-          )}
-        </p>
-        <p className="text-xs text-subtle truncate">{profile.email}</p>
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className="w-8 h-8 rounded-[8px] bg-brand/10 text-brand text-xs font-semibold flex items-center justify-center shrink-0">
+          {initials || "?"}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-heading truncate">
+            {name}
+            {isSelf && (
+              <span className="ml-2 text-2xs text-subtle font-normal">(you)</span>
+            )}
+          </p>
+          <p className="text-xs text-subtle truncate">{profile.email}</p>
+        </div>
+
+        <select
+          value={profile.role}
+          onChange={handleRole}
+          disabled={saving || isSelf}
+          className="text-xs bg-surface border border-[var(--color-border)] rounded-[8px] px-2 py-1.5 text-body outline-none focus:ring-1 focus:ring-brand disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {(["opener", "closer", "admin"] as SalesRole[]).map((r) => (
+            <option key={r} value={r}>
+              {ROLE_LABELS[r]}
+            </option>
+          ))}
+        </select>
+
+        <button
+          onClick={handleToggle}
+          disabled={saving || isSelf}
+          className={[
+            "text-xs px-3 py-1.5 rounded-[8px] border font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+            profile.active
+              ? "border-[var(--color-danger)]/40 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/5"
+              : "border-[var(--color-success)]/40 text-[var(--color-success)] hover:bg-[var(--color-success)]/5",
+          ].join(" ")}
+        >
+          {saving ? "…" : profile.active ? "Deactivate" : "Reactivate"}
+        </button>
+
+        <button
+          onClick={() => setNotesOpen((v) => !v)}
+          className="text-xs text-subtle hover:text-brand transition-colors font-medium px-2 py-1.5"
+        >
+          {notesOpen ? "Hide Notes" : "Coach Notes"}
+        </button>
       </div>
 
-      <select
-        value={profile.role}
-        onChange={handleRole}
-        disabled={saving || isSelf}
-        className="text-xs bg-surface border border-[var(--color-border)] rounded-[8px] px-2 py-1.5 text-body outline-none focus:ring-1 focus:ring-brand disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {(["opener", "closer", "admin"] as SalesRole[]).map((r) => (
-          <option key={r} value={r}>
-            {ROLE_LABELS[r]}
-          </option>
-        ))}
-      </select>
-
-      <button
-        onClick={handleToggle}
-        disabled={saving || isSelf}
-        className={[
-          "text-xs px-3 py-1.5 rounded-[8px] border font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
-          profile.active
-            ? "border-[var(--color-danger)]/40 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/5"
-            : "border-[var(--color-success)]/40 text-[var(--color-success)] hover:bg-[var(--color-success)]/5",
-        ].join(" ")}
-      >
-        {saving ? "…" : profile.active ? "Deactivate" : "Reactivate"}
-      </button>
+      {notesOpen && (
+        <div className="border-t border-[var(--color-border)] px-4 py-3 bg-[var(--color-bg-subtle)]">
+          <CoachNotesPanel repId={profile.id} />
+        </div>
+      )}
     </div>
   );
 }

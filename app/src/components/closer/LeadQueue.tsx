@@ -3,10 +3,11 @@ import { Button, CTAButton } from "../ui/Button";
 import { Logo } from "../ui/Logo";
 import { getLeadQueue, type LeadQueueItem, type LeadStatus } from "../../lib/leadQueue";
 import { CallHistory } from "./CallHistory";
+import { CoachingView } from "./CoachingView";
 import { setActiveReport } from "../../lib/storage";
 import type { ProbeReport } from "../../types";
 
-type TopView = "queue" | "history";
+type TopView = "queue" | "history" | "coaching";
 
 interface LeadQueueProps {
   currentUserId: string;
@@ -114,7 +115,7 @@ export function LeadQueue({
         <div className="flex items-center gap-3">
           {/* Top-level view toggle */}
           <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
-            {(["queue", "history"] as TopView[]).map((v) => (
+            {(["queue", "history", "coaching"] as TopView[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setTopView(v)}
@@ -125,7 +126,7 @@ export function LeadQueue({
                     : "text-subtle hover:text-heading bg-surface",
                 ].join(" ")}
               >
-                {v === "queue" ? "Lead Queue" : "My Calls"}
+                {v === "queue" ? "Lead Queue" : v === "history" ? "My Calls" : "Coaching"}
               </button>
             ))}
           </div>
@@ -144,12 +145,14 @@ export function LeadQueue({
         <div className="flex items-end justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold text-heading">
-              {topView === "queue" ? "Lead Queue" : "My Calls"}
+              {topView === "queue" ? "Lead Queue" : topView === "history" ? "My Calls" : "Coaching"}
             </h1>
             <p className="text-sm text-subtle mt-0.5">
               {topView === "queue"
                 ? (loading ? "loading…" : `${counts.open} open · ${leads.length} total`)
-                : "Your call history and performance"}
+                : topView === "history"
+                  ? "Your call history and performance"
+                  : "Notes from your manager"}
             </p>
           </div>
           {topView === "queue" && (
@@ -170,6 +173,11 @@ export function LeadQueue({
         {/* History view */}
         {topView === "history" && (
           <CallHistory currentUserId={currentUserId} />
+        )}
+
+        {/* Coaching view */}
+        {topView === "coaching" && (
+          <CoachingView currentUserId={currentUserId} />
         )}
 
         {/* Queue view — filter pills + lead list */}
