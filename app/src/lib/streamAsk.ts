@@ -1,4 +1,5 @@
 import type { AskContext } from "../../server/ask-handler";
+import { getAuthHeader } from "./authHeader.js";
 
 export type AskEvent =
   | { type: "text"; data: string }
@@ -16,9 +17,10 @@ export function streamAsk(question: string, context: AskContext): AskHandle {
   async function* iter(): AsyncGenerator<AskEvent, void, void> {
     let res: Response;
     try {
+      const authHeader = await getAuthHeader();
       res = await fetch("/api/ask", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeader },
         body: JSON.stringify({ question, context }),
         signal: controller.signal,
       });

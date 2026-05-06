@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useRef, useState } from "react";
+import { getAuthHeader } from "./authHeader.js";
 
 export type TranscriptionState =
   | "idle"
@@ -128,7 +129,8 @@ export function useDeepgramTranscription({ onUtterance }: UseDeepgramOptions = {
     setState("connecting");
     let token: string;
     try {
-      const resp = await fetch("/api/deepgram-token", { method: "POST" });
+      const authHeader = await getAuthHeader();
+      const resp = await fetch("/api/deepgram-token", { method: "POST", headers: authHeader });
       if (!resp.ok) throw new Error(`Token endpoint returned ${resp.status}`);
       const data = (await resp.json()) as { token: string; error?: string };
       if (data.error) throw new Error(data.error);

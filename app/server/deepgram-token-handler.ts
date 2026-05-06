@@ -10,6 +10,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { verifyAuth, unauthorizedResponse } from "./verifyAuth.js";
 
 async function issueToken(): Promise<string> {
   const key = process.env.DEEPGRAM_API_KEY;
@@ -28,6 +29,12 @@ export async function handleDeepgramToken(
   if (req.method !== "POST") {
     res.statusCode = 405;
     res.end(JSON.stringify({ error: "Method not allowed" }));
+    return;
+  }
+
+  const userId = await verifyAuth(req);
+  if (!userId) {
+    unauthorizedResponse(res);
     return;
   }
 

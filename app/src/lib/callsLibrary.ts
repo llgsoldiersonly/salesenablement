@@ -154,7 +154,9 @@ export function callsToCsv(calls: LibraryCall[]): string {
   const escape = (v: unknown): string => {
     if (v === null || v === undefined) return "";
     const s = Array.isArray(v) ? v.join("|") : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    // Prefix formula-injection chars so Excel/Sheets don't execute them
+    const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
   };
   const rows = calls.map((c) =>
     [

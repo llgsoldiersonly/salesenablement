@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/Button";
 import {
   callsToCsv,
@@ -182,8 +182,8 @@ export function CallsLibraryView() {
               {visible.map((c) => {
                 const isExpanded = expandedId === c.id;
                 return (
-                  <>
-                    <tr key={c.id} className="hover:bg-surface-2">
+                  <Fragment key={c.id}>
+                    <tr className="hover:bg-surface-2">
                       <td className="px-3 py-2 text-xs text-subtle whitespace-nowrap">{formatDate(c.startedAt)}</td>
                       <td className="px-3 py-2">
                         <p className="font-medium text-heading truncate">{c.firmName}</p>
@@ -210,7 +210,7 @@ export function CallsLibraryView() {
                       </td>
                     </tr>
                     {isExpanded && (
-                      <tr key={c.id + ":detail"} className="bg-surface-2">
+                      <tr className="bg-surface-2">
                         <td colSpan={8} className="px-3 py-3">
                           <div className="flex flex-col gap-2">
                             {c.objectionsHit && c.objectionsHit.length > 0 && (
@@ -232,7 +232,7 @@ export function CallsLibraryView() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>

@@ -10,6 +10,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { verifyAuth, unauthorizedResponse } from "./verifyAuth.js";
 
 export interface AskContext {
   firmName: string;
@@ -87,6 +88,12 @@ export async function handleAsk(
   res: ServerResponse,
   preParsedBody?: AskRequestBody,
 ): Promise<void> {
+  const userId = await verifyAuth(req);
+  if (!userId) {
+    unauthorizedResponse(res, true);
+    return;
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     res.statusCode = 500;

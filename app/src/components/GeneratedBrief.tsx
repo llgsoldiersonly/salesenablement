@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { Card } from "./ui/Card";
 import { Button, CTAButton } from "./ui/Button";
 import { BriefFeedback } from "./BriefFeedback";
@@ -172,7 +173,8 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
 
   const html = useMemo(() => {
     if (!text) return "";
-    return marked.parse(text, { gfm: true, breaks: false }) as string;
+    const raw = marked.parse(text, { gfm: true, breaks: false, async: false }) as string;
+    return DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
   }, [text]);
 
   return (

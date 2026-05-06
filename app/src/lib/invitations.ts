@@ -96,8 +96,13 @@ export async function isEmailAllowed(email: string): Promise<boolean> {
     p_email: email.trim(),
   });
   if (error) {
-    // Fail open in dev (RPC may not be deployed) — the trigger is the real gate
-    console.error("is_email_allowed failed:", error.message);
+    if (import.meta.env.PROD) {
+      // Fail closed in prod — DB trigger is the defense-in-depth backstop
+      console.error("is_email_allowed failed (failing closed):", error.message);
+      return false;
+    }
+    // In dev, fail open so the local server works without the RPC deployed
+    console.warn("is_email_allowed failed (failing open in dev):", error.message);
     return true;
   }
   return Boolean(data);

@@ -11,7 +11,8 @@ function historyToCsv(calls: HistoryCall[]): string {
   const escape = (v: unknown): string => {
     if (v === null || v === undefined) return "";
     const s = Array.isArray(v) ? v.join("|") : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
   };
   const rows = calls.map((c) => [
     c.startedAt, c.firmName, c.firmCity, c.firmState,
