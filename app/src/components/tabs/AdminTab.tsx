@@ -479,7 +479,15 @@ function InvitationsPanel() {
   const [role, setRole] = useState<SalesRole>("opener");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const portalUrl = (r: SalesRole) => {
+    const base = window.location.origin;
+    if (r === "closer") return `${base}/closers`;
+    if (r === "admin") return `${base}/admin`;
+    return base;
+  };
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -494,16 +502,25 @@ function InvitationsPanel() {
     if (submitting || !email.trim()) return;
     setSubmitting(true);
     setErrorMsg(null);
-    setSuccessMsg(null);
+    setInviteLink(null);
     const res = await inviteTeammate(email, role);
     setSubmitting(false);
     if (res.ok) {
-      setSuccessMsg(`${email.trim()} can now sign in as ${role}.`);
+      setInviteLink(portalUrl(role));
+      setCopied(false);
       setEmail("");
       void reload();
     } else {
       setErrorMsg(res.error);
     }
+  };
+
+  const handleCopy = () => {
+    if (!inviteLink) return;
+    void navigator.clipboard.writeText(inviteLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const handleRevoke = async (id: string) => {
@@ -526,7 +543,7 @@ function InvitationsPanel() {
           Invite Teammate
         </h2>
         <p className="text-xs text-subtle">
-          Add an email below before sharing the app URL. Anyone NOT on this list will be rejected at sign-in.
+          Add their email, then copy the link below and send it in Ring.
         </p>
       </div>
 
@@ -555,15 +572,33 @@ function InvitationsPanel() {
           disabled={submitting || !email.trim()}
           className="px-3 py-1.5 rounded-[8px] bg-brand text-white text-xs font-semibold disabled:opacity-40 hover:brightness-110 transition-all"
         >
-          {submitting ? "Sending…" : "Send invite"}
+          {submitting ? "Adding…" : "Add & get link"}
         </button>
       </form>
 
       {errorMsg && (
         <p className="text-2xs text-[var(--color-danger)]">{errorMsg}</p>
       )}
-      {successMsg && (
-        <p className="text-2xs text-[var(--color-success)]">{successMsg}</p>
+
+      {inviteLink && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-2xs text-[var(--color-success)] font-medium">
+            Invited — send this link in Ring:
+          </p>
+          <div className="flex items-center gap-2 bg-[var(--color-bg-subtle)] border border-[var(--color-border)] rounded-[8px] px-3 py-2">
+            <span className="flex-1 text-xs text-body font-mono break-all select-all">{inviteLink}</span>
+            <button
+              onClick={handleCopy}
+              className="shrink-0 text-2xs font-semibold px-2.5 py-1 rounded-[6px] bg-brand text-white hover:brightness-110 transition-all"
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+          <p className="text-2xs text-subtle">
+            They go to this link, enter their email, and get a sign-in link. Their role is already set.
+          </p>
+        </div>
+      )}
       )}
 
       {!loading && pending.length > 0 && (
