@@ -255,7 +255,8 @@ export function EndCallDialog({ open, callStartedAt, firmKey, onDone }: EndCallD
 
           {!assessmentId && (
             <p className="text-xs text-[var(--color-danger)]">
-              No active assessment — outcome will be saved without linking to a firm.
+              No active firm — open a lead from the queue first to log this call.
+              Use Skip to end without saving.
             </p>
           )}
 
@@ -263,7 +264,7 @@ export function EndCallDialog({ open, callStartedAt, firmKey, onDone }: EndCallD
             <Button variant="neutral" type="button" onClick={onDone} disabled={saving}>
               Skip
             </Button>
-            <CTAButton type="submit" disabled={saving}>
+            <CTAButton type="submit" disabled={saving || !assessmentId}>
               {saving ? "Saving…" : "Save & End Call"}
             </CTAButton>
           </div>

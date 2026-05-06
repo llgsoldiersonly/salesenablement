@@ -47,6 +47,18 @@ export function CloserApp() {
     return () => { cancelled = true; };
   }, [authLoading, session]);
 
+  // Best-effort: release any active lead claim when the tab is closed or
+  // navigated away. The 15-minute server-side claim timeout is the
+  // guaranteed backstop if the in-flight request doesn't complete.
+  useEffect(() => {
+    const handlePageHide = () => {
+      const activeId = localStorage.getItem(ACTIVE_KEY);
+      if (activeId) void releaseLead(activeId);
+    };
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, []);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-surface">

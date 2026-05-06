@@ -86,14 +86,6 @@ export default function RepApp() {
   }
 
   if (!report) {
-    if (isMobile) {
-      return (
-        <FirmBriefing
-          report={MOCK_REPORT}
-          recommendation={recommendPackage(MOCK_REPORT)}
-        />
-      );
-    }
     return (
       <>
         <EmptyState
