@@ -22,6 +22,12 @@ export default function App() {
   const [probeOpen, setProbeOpen] = useState(false);
   const [loadingHash, setLoadingHash] = useState(true);
 
+  // Must stay above all early returns — Rules of Hooks
+  const recommendation = useMemo(
+    () => (report ? recommendPackage(report) : null),
+    [report],
+  );
+
   // On mount (and after sign-in): prefer ?#data= hash share, then fall back
   // to the user's active assessment in Supabase.
   useEffect(() => {
@@ -62,11 +68,6 @@ export default function App() {
   if (!session) {
     return <SignIn />;
   }
-
-  const recommendation = useMemo(
-    () => (report ? recommendPackage(report) : null),
-    [report]
-  );
 
   const handleUseMock = () => {
     setReport(MOCK_REPORT);
