@@ -38,6 +38,10 @@ export interface LeadQueueItem {
   claimedById: string | null;
   claimedByName: string | null;
   claimedUntil: string | null;
+  contactName: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  contactRole: string | null;
 }
 
 interface AssessmentRow {
@@ -48,6 +52,10 @@ interface AssessmentRow {
   coverage_score: number | null;
   claimed_by: string | null;
   claimed_until: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  contact_role: string | null;
 }
 
 interface CallRow {
@@ -84,7 +92,9 @@ function outcomeToStatus(outcome: CallOutcome | null): LeadStatus {
 export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
   const { data: assessments } = await supabase
     .from("sales_assessments")
-    .select("id, created_at, created_by, report, coverage_score, claimed_by, claimed_until")
+    .select(
+      "id, created_at, created_by, report, coverage_score, claimed_by, claimed_until, contact_name, contact_phone, contact_email, contact_role",
+    )
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -181,6 +191,10 @@ export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
       claimedById: claimActive ? row.claimed_by : null,
       claimedByName: claimActive ? claimer?.full_name ?? claimer?.email ?? null : null,
       claimedUntil: claimActive ? row.claimed_until : null,
+      contactName: row.contact_name,
+      contactPhone: row.contact_phone,
+      contactEmail: row.contact_email,
+      contactRole: row.contact_role,
     };
   });
 }

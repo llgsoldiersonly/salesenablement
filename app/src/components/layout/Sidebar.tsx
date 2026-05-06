@@ -20,11 +20,12 @@ interface SidebarProps {
   firmName: string;
   onNewAssessment?: () => void;
   onBackToQueue?: () => void;
+  onOpenCalendar?: () => void;
   userName?: string;
   userRole?: string;
 }
 
-export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment, onBackToQueue, userName, userRole }: SidebarProps) {
+export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment, onBackToQueue, onOpenCalendar, userName, userRole }: SidebarProps) {
   return (
     <aside className="w-sidebar shrink-0 h-full bg-surface border-r border-[var(--color-border)] flex flex-col py-6 px-3 gap-1">
       {/* Brand mark */}
@@ -90,8 +91,11 @@ export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment, onB
 
       {/* Bottom: settings + CTA */}
       <div className="flex flex-col gap-3 mt-4 px-1">
-        <button className="flex items-center gap-3 px-3 py-2 rounded-[8px] text-subtle text-xs font-semibold uppercase tracking-wider hover:shadow-sm hover:text-heading transition-all duration-200">
-          <span aria-hidden="true">⚙️</span> Settings
+        <button
+          onClick={onOpenCalendar}
+          className="flex items-center gap-3 px-3 py-2 rounded-[8px] text-subtle text-xs font-semibold uppercase tracking-wider hover:shadow-sm hover:text-heading transition-all duration-200"
+        >
+          <span aria-hidden="true">📅</span> Calendar Sync
         </button>
         <CTAButton size="md" className="w-full text-xs tracking-widest" onClick={onNewAssessment}>
           + New Assessment

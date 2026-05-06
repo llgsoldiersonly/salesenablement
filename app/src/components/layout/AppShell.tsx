@@ -10,6 +10,7 @@ import { NotesTab } from "../tabs/NotesTab";
 import { ActivityTab } from "../tabs/ActivityTab";
 import { AdminTab } from "../tabs/AdminTab";
 import { EndCallDialog } from "../EndCallDialog";
+import { CalendarSyncDialog } from "../CalendarSyncDialog";
 import type { CallSession, PackageRecommendation, ProbeReport, TabId } from "../../types";
 
 interface AppShellProps {
@@ -28,6 +29,7 @@ export function AppShell({ report, recommendation, session, onLoadReport, onNewA
   const [activeNav, setActiveNav] = useState("prospect");
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [endCallPending, setEndCallPending] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const callActive = callStartedAt != null;
   const callStatus: CallSession["status"] = callActive ? "active" : session.status;
@@ -58,6 +60,7 @@ export function AppShell({ report, recommendation, session, onLoadReport, onNewA
           firmName={report.firm.name}
           onNewAssessment={onNewAssessment}
           onBackToQueue={onBackToQueue}
+          onOpenCalendar={() => setCalendarOpen(true)}
           userName={userName}
           userRole={userRole}
         />
@@ -90,6 +93,8 @@ export function AppShell({ report, recommendation, session, onLoadReport, onNewA
         firmKey={firmKey}
         onDone={handleEndCallDone}
       />
+
+      <CalendarSyncDialog open={calendarOpen} onClose={() => setCalendarOpen(false)} />
 
       {/* Footer */}
       <footer className="shrink-0 bg-surface border-t border-[var(--color-border)] px-6 py-2 flex items-center justify-between">

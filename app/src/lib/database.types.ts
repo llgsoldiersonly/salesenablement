@@ -99,6 +99,10 @@ export type Database = {
           brief_input_ready: boolean | null
           claimed_by: string | null
           claimed_until: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          contact_role: string | null
           coverage_score: number | null
           created_at: string
           created_by: string
@@ -116,6 +120,10 @@ export type Database = {
           brief_input_ready?: boolean | null
           claimed_by?: string | null
           claimed_until?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_role?: string | null
           coverage_score?: number | null
           created_at?: string
           created_by: string
@@ -133,6 +141,10 @@ export type Database = {
           brief_input_ready?: boolean | null
           claimed_by?: string | null
           claimed_until?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_role?: string | null
           coverage_score?: number | null
           created_at?: string
           created_by?: string
@@ -331,6 +343,7 @@ export type Database = {
       sales_profiles: {
         Row: {
           active: boolean
+          calendar_token: string | null
           created_at: string
           email: string
           full_name: string | null
@@ -340,6 +353,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          calendar_token?: string | null
           created_at?: string
           email: string
           full_name?: string | null
@@ -349,6 +363,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          calendar_token?: string | null
           created_at?: string
           email?: string
           full_name?: string | null
@@ -365,6 +380,14 @@ export type Database = {
     Functions: {
       claim_assessment: {
         Args: { p_assessment_id: string; p_minutes?: number; p_force?: boolean }
+        Returns: string
+      }
+      lookup_calendar_user: {
+        Args: { p_token: string }
+        Returns: string
+      }
+      regenerate_calendar_token: {
+        Args: never
         Returns: string
       }
       release_assessment: {

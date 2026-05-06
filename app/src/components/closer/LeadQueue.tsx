@@ -6,7 +6,9 @@ import { CallHistory } from "./CallHistory";
 import { CoachingView } from "./CoachingView";
 import { PipelineView } from "./PipelineView";
 import { claimLead } from "../../lib/claims";
+import { formatPhoneDisplay, phoneTelHref } from "../../lib/leadContact";
 import { setActiveReport } from "../../lib/storage";
+import { CalendarSyncDialog } from "../CalendarSyncDialog";
 import type { ProbeReport } from "../../types";
 
 type TopView = "queue" | "history" | "coaching";
@@ -81,6 +83,8 @@ export function LeadQueue({
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("open");
   const [layout, setLayout] = useState<"list" | "pipeline">("list");
+  const [search, setSearch] = useState("");
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const reload = async () => {
     setLoading(true);
@@ -105,7 +109,7 @@ export function LeadQueue({
     return c;
   }, [leads, currentUserId]);
 
-  const visible = useMemo(() => {
+  const filtered = useMemo(() => {
     switch (filter) {
       case "follow_ups":
         return leads
@@ -119,6 +123,29 @@ export function LeadQueue({
       case "all":   return leads;
     }
   }, [leads, filter, currentUserId]);
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return filtered;
+    return filtered.filter((l) => {
+      const firm = l.report.firm;
+      const haystack = [
+        firm.name,
+        firm.city,
+        firm.state,
+        firm.practiceArea,
+        l.openerName,
+        l.contactName,
+        l.contactPhone,
+        l.contactEmail,
+        l.contactRole,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [filtered, search]);
 
   const handleOpen = async (lead: LeadQueueItem) => {
     const lockedByOther =
@@ -172,6 +199,13 @@ export function LeadQueue({
           </div>
           <span className="text-xs text-subtle">{currentUserName}</span>
           <button
+            onClick={() => setCalendarOpen(true)}
+            className="text-xs text-subtle hover:text-heading transition-colors"
+            title="Subscribe to follow-ups in your calendar"
+          >
+            📅 Calendar
+          </button>
+          <button
             onClick={onSignOut}
             className="text-xs text-subtle hover:text-[var(--color-danger)] transition-colors"
           >
@@ -179,6 +213,8 @@ export function LeadQueue({
           </button>
         </div>
       </header>
+
+      <CalendarSyncDialog open={calendarOpen} onClose={() => setCalendarOpen(false)} />
 
       <div className="max-w-4xl mx-auto px-6 py-6 flex flex-col gap-5">
         {/* Title bar */}
@@ -197,6 +233,13 @@ export function LeadQueue({
           </div>
           {topView === "queue" && (
             <div className="flex items-center gap-2">
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search firm, contact, opener…"
+                className="w-56 bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-1.5 text-xs text-body outline-none focus:ring-2 focus:ring-brand placeholder:text-subtle"
+              />
               <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
                 {(["list", "pipeline"] as const).map((v) => (
                   <button
@@ -398,6 +441,26 @@ function LeadCard({
         </div>
         {subline && (
           <p className="text-xs text-body truncate mt-0.5">{subline}</p>
+        )}
+        {(lead.contactName || lead.contactPhone) && (
+          <p className="text-xs text-body mt-0.5 flex items-center gap-2 flex-wrap">
+            {lead.contactName && (
+              <span>
+                <span aria-hidden="true">👤 </span>
+                <span className="font-medium">{lead.contactName}</span>
+                {lead.contactRole && <span className="text-subtle"> · {lead.contactRole}</span>}
+              </span>
+            )}
+            {lead.contactPhone && (
+              <a
+                href={phoneTelHref(lead.contactPhone) ?? "#"}
+                onClick={(e) => e.stopPropagation()}
+                className="text-brand hover:underline tabular-nums font-medium"
+              >
+                📞 {formatPhoneDisplay(lead.contactPhone)}
+              </a>
+            )}
+          </p>
         )}
         <p className="text-2xs text-subtle mt-0.5">
           Opened by{" "}
