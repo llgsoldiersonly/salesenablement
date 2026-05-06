@@ -9,7 +9,9 @@ import {
 } from "../lib/closerCockpit";
 import { detectSignals } from "../lib/detectCockpitSignals";
 import { useDeepgramTranscription } from "../lib/useDeepgramTranscription";
+import { AskAIPanel } from "./closer/AskAIPanel";
 import type { PackageRecommendation, ProbeReport } from "../types";
+import type { AskContext } from "../../server/ask-handler";
 
 interface CloserCockpitProps {
   report: ProbeReport;
@@ -27,6 +29,22 @@ const CATEGORY_ICON: Record<TalkingPoint["category"], string> = {
   trust: "🛡️",
   package: "🎯",
 };
+
+function buildAskContext(report: ProbeReport, recommendation: PackageRecommendation): AskContext {
+  return {
+    firmName: report.firm.name,
+    firmCity: report.firm.city,
+    firmState: report.firm.state,
+    practiceArea: report.firm.practiceArea,
+    coverageScore: report.coverageScore,
+    concerns: report.concerns ?? [],
+    recommendedPackage: recommendation.primary,
+    competitors: [
+      ...(report.sources.serpLocal.data?.topLocalPackCompetitors.slice(0, 3).map((c) => c.name) ?? []),
+      ...(report.sources.serpLocal.data?.topOrganicCompetitors.slice(0, 2).map((c) => c.name) ?? []),
+    ],
+  };
+}
 
 export function CloserCockpit({
   report,
@@ -349,7 +367,7 @@ export function CloserCockpit({
         </section>
 
         {/* Live notes */}
-        <section className="pb-2">
+        <section>
           <h3 className="text-xs font-semibold uppercase tracking-widest text-heading mb-2">
             Notes
           </h3>
@@ -360,6 +378,14 @@ export function CloserCockpit({
             className="w-full h-28 bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-2 text-xs text-body resize-none outline-none focus:ring-2 focus:ring-brand"
           />
           <p className="text-2xs text-subtle mt-1">Saved locally · {notes.length} chars</p>
+        </section>
+
+        {/* Ask AI */}
+        <section className="pb-2">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-heading mb-2">
+            Ask AI
+          </h3>
+          <AskAIPanel context={buildAskContext(report, recommendation)} compact />
         </section>
       </div>
     </div>

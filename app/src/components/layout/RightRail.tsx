@@ -1,5 +1,7 @@
 import { CloserCockpit } from "../CloserCockpit";
+import { AskAIPanel } from "../closer/AskAIPanel";
 import type { CallSession, PackageRecommendation, ProbeReport } from "../../types";
+import type { AskContext } from "../../../server/ask-handler";
 
 interface RightRailProps {
   session: CallSession;
@@ -33,6 +35,22 @@ export function RightRail({
       </aside>
     );
   }
+
+  const askContext: AskContext | null = report
+    ? {
+        firmName: report.firm.name,
+        firmCity: report.firm.city,
+        firmState: report.firm.state,
+        practiceArea: report.firm.practiceArea,
+        coverageScore: report.coverageScore,
+        concerns: report.concerns ?? [],
+        recommendedPackage: recommendation?.primary ?? "unknown",
+        competitors: [
+          ...(report.sources.serpLocal.data?.topLocalPackCompetitors.slice(0, 3).map((c) => c.name) ?? []),
+          ...(report.sources.serpLocal.data?.topOrganicCompetitors.slice(0, 2).map((c) => c.name) ?? []),
+        ],
+      }
+    : null;
 
   // Idle mode — original right rail.
   return (
@@ -108,6 +126,16 @@ export function RightRail({
           Market Saturation Map: {firmState.slice(0, 2).toUpperCase()}-59401
         </p>
       </section>
+
+      {/* Ask AI */}
+      {askContext && (
+        <section>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-heading mb-3">
+            Ask AI
+          </h2>
+          <AskAIPanel context={askContext} />
+        </section>
+      )}
 
       {/* Network Health */}
       <section className="mt-auto">
