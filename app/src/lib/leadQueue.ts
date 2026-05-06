@@ -1,0 +1,129 @@
+/**
+ * Lead Queue — what closers see when they sign in.
+ *
+ * Returns recent assessments (created by openers) along with their most-recent
+ * call status, so a closer can pick a fresh lead and start a call without
+ * hunting through the report list.
+ */
+
+import { supabase } from "./supabase.js";
+import type { ProbeReport } from "../types/index.js";
+import type { Database } from "./database.types.js";
+
+export type CallOutcome = Database["public"]["Enums"]["sales_call_outcome"];
+
+export type LeadStatus =
+  | "open"
+  | "in_progress"
+  | "won"
+  | "lost"
+  | "follow_up"
+  | "no_decision"
+  | "callback"
+  | "not_interested";
+
+export interface LeadQueueItem {
+  assessmentId: string;
+  report: ProbeReport;
+  createdAt: string;
+  openerId: string;
+  openerName: string | null;
+  status: LeadStatus;
+  lastCallAt: string | null;
+  lastCallCloserId: string | null;
+  callCount: number;
+  coverageScore: number | null;
+}
+
+interface AssessmentRow {
+  id: string;
+  created_at: string;
+  created_by: string;
+  report: unknown;
+  coverage_score: number | null;
+}
+
+interface CallRow {
+  assessment_id: string;
+  closer_id: string | null;
+  outcome: CallOutcome | null;
+  created_at: string;
+}
+
+interface ProfileRow {
+  id: string;
+  full_name: string | null;
+  email: string;
+}
+
+function outcomeToStatus(outcome: CallOutcome | null): LeadStatus {
+  switch (outcome) {
+    case "closed_won": return "won";
+    case "closed_lost": return "lost";
+    case "follow_up_scheduled": return "follow_up";
+    case "no_decision": return "no_decision";
+    case "callback_requested": return "callback";
+    case "not_interested": return "not_interested";
+    case null: return "in_progress";
+  }
+}
+
+export async function getLeadQueue(limit = 50): Promise<LeadQueueItem[]> {
+  const { data: assessments } = await supabase
+    .from("sales_assessments")
+    .select("id, created_at, created_by, report, coverage_score")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const rows = (assessments ?? []) as AssessmentRow[];
+  if (rows.length === 0) return [];
+
+  const assessmentIds = rows.map((r) => r.id);
+  const openerIds = Array.from(new Set(rows.map((r) => r.created_by)));
+
+  const [callsRes, profilesRes] = await Promise.all([
+    supabase
+      .from("sales_calls")
+      .select("assessment_id, closer_id, outcome, created_at")
+      .in("assessment_id", assessmentIds)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("sales_profiles")
+      .select("id, full_name, email")
+      .in("id", openerIds),
+  ]);
+
+  const calls = (callsRes.data ?? []) as CallRow[];
+  const profiles = (profilesRes.data ?? []) as ProfileRow[];
+  const profileById = new Map(profiles.map((p) => [p.id, p]));
+
+  const callsByAssessment = new Map<string, CallRow[]>();
+  calls.forEach((c) => {
+    const list = callsByAssessment.get(c.assessment_id) ?? [];
+    list.push(c);
+    callsByAssessment.set(c.assessment_id, list);
+  });
+
+  return rows.map((row) => {
+    const myCalls = callsByAssessment.get(row.id) ?? [];
+    const latest = myCalls[0];
+    const opener = profileById.get(row.created_by);
+
+    const status: LeadStatus = latest
+      ? outcomeToStatus(latest.outcome)
+      : "open";
+
+    return {
+      assessmentId: row.id,
+      report: row.report as ProbeReport,
+      createdAt: row.created_at,
+      openerId: row.created_by,
+      openerName: opener?.full_name ?? opener?.email ?? null,
+      status,
+      lastCallAt: latest?.created_at ?? null,
+      lastCallCloserId: latest?.closer_id ?? null,
+      callCount: myCalls.length,
+      coverageScore: row.coverage_score,
+    };
+  });
+}

@@ -19,9 +19,10 @@ interface SidebarProps {
   onNavChange: (id: string) => void;
   firmName: string;
   onNewAssessment?: () => void;
+  onBackToQueue?: () => void;
 }
 
-export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment }: SidebarProps) {
+export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment, onBackToQueue }: SidebarProps) {
   return (
     <aside className="w-sidebar shrink-0 h-full bg-surface border-r border-[var(--color-border)] flex flex-col py-6 px-3 gap-1">
       {/* Brand mark */}
@@ -42,6 +43,16 @@ export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment }: S
         </p>
         <p className="text-xs text-subtle">Senior Associate</p>
       </div>
+
+      {/* Back to queue (closers only) */}
+      {onBackToQueue && (
+        <button
+          onClick={onBackToQueue}
+          className="flex items-center gap-2 mx-3 mb-3 px-3 py-1.5 rounded-[8px] text-2xs uppercase tracking-wider font-semibold text-subtle hover:text-brand hover:shadow-sm transition-all duration-200"
+        >
+          <span aria-hidden="true">←</span> Lead Queue
+        </button>
+      )}
 
       {/* Nav items */}
       <nav className="flex flex-col gap-1 flex-1">

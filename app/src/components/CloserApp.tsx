@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { SignIn } from "./SignIn";
 import { AppShell } from "./layout/AppShell";
-import { EmptyState } from "./EmptyState";
+import { LeadQueue } from "./closer/LeadQueue";
 import { LoadReportDialog } from "./LoadReportDialog";
 import { NewAssessmentDialog } from "./NewAssessmentDialog";
 import { Logo } from "./ui/Logo";
@@ -103,9 +103,13 @@ export function CloserApp() {
   if (!report) {
     return (
       <>
-        <EmptyState
+        <LeadQueue
+          currentUserId={session.user.id}
+          currentUserName={profile?.full_name ?? profile?.email ?? "Closer"}
+          onOpenLead={(r) => setReport(r)}
           onLoadReport={() => setDialogOpen(true)}
           onNewAssessment={() => setProbeOpen(true)}
+          onSignOut={() => void signOut()}
         />
         <LoadReportDialog
           open={dialogOpen}
@@ -130,6 +134,10 @@ export function CloserApp() {
         session={MOCK_SESSION}
         onLoadReport={() => setDialogOpen(true)}
         onNewAssessment={() => setProbeOpen(true)}
+        onBackToQueue={() => {
+          localStorage.removeItem("llg.activeAssessment.v2");
+          setReport(null);
+        }}
       />
       <LoadReportDialog
         open={dialogOpen}
