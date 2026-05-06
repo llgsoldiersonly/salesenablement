@@ -10,6 +10,7 @@ import { formatPhoneDisplay, phoneTelHref } from "../../lib/leadContact";
 import { setActiveReport } from "../../lib/storage";
 import { supabase } from "../../lib/supabase";
 import { CalendarSyncDialog } from "../CalendarSyncDialog";
+import { NotificationBell } from "../NotificationBell";
 import type { ProbeReport } from "../../types";
 
 type TopView = "queue" | "history" | "coaching";
@@ -234,6 +235,12 @@ export function LeadQueue({
               </button>
             ))}
           </div>
+          <NotificationBell
+            onOpenAssessment={async (id) => {
+              const lead = leads.find((l) => l.assessmentId === id);
+              if (lead) await handleOpen(lead);
+            }}
+          />
           <span className="text-xs text-subtle">{currentUserName}</span>
           <button
             onClick={() => setCalendarOpen(true)}

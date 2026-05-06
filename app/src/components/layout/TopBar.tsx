@@ -3,6 +3,7 @@ import { CTAButton } from "../ui/Button";
 import { DotBadge } from "../ui/Badge";
 import { Logo } from "../ui/Logo";
 import { ShareButton } from "../ShareButton";
+import { NotificationBell } from "../NotificationBell";
 import { useAuth } from "../../lib/auth";
 import type { ProbeReport, TabId } from "../../types";
 
@@ -62,6 +63,7 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
             📁
           </button>
           {report && <ShareButton report={report} variant="icon" />}
+          <NotificationBell />
           <button
             aria-label="history"
             className="w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 flex items-center justify-center text-subtle text-sm"

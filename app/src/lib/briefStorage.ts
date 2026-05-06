@@ -56,20 +56,25 @@ export async function saveBriefToSupabase(
   assessmentId: string,
   text: string,
   usage?: StoredBrief["usage"],
-): Promise<void> {
+): Promise<string | null> {
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
-  if (!userId) return;
+  if (!userId) return null;
 
-  await supabase.from("sales_briefs").insert({
-    assessment_id: assessmentId,
-    generated_by: userId,
-    body_md: text,
-    input_tokens: usage?.input ?? null,
-    output_tokens: usage?.output ?? null,
-    cache_read_tokens: usage?.cache_read ?? null,
-    cache_write_tokens: usage?.cache_write ?? null,
-  });
+  const { data } = await supabase
+    .from("sales_briefs")
+    .insert({
+      assessment_id: assessmentId,
+      generated_by: userId,
+      body_md: text,
+      input_tokens: usage?.input ?? null,
+      output_tokens: usage?.output ?? null,
+      cache_read_tokens: usage?.cache_read ?? null,
+      cache_write_tokens: usage?.cache_write ?? null,
+    })
+    .select("id")
+    .single();
+  return (data as { id: string } | null)?.id ?? null;
 }
 
 export interface SupabaseBrief {

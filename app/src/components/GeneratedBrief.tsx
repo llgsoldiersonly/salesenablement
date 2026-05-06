@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { marked } from "marked";
 import { Card } from "./ui/Card";
 import { Button, CTAButton } from "./ui/Button";
+import { BriefFeedback } from "./BriefFeedback";
 import { streamBrief } from "../lib/streamBrief";
 import {
   firmKey,
@@ -41,6 +42,8 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [briefMeta, setBriefMeta] = useState<{ generatedAt: string; byName: string | null } | null>(null);
+  const [briefId, setBriefId] = useState<string | null>(null);
+  const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(null);
   const abortRef = useRef<(() => void) | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -57,16 +60,19 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
       setText("");
       setUsage(null);
       setBriefMeta(null);
+      setBriefId(null);
       setStatus("idle");
       setError(null);
       // Try Supabase fallback for cross-device / team-shared briefs
       const assessmentId = localStorage.getItem(ACTIVE_KEY);
+      setActiveAssessmentId(assessmentId);
       if (assessmentId) {
         void loadLatestBriefFromSupabase(assessmentId).then((remote) => {
           if (remote) {
             setText(remote.bodyMd);
             setUsage(remote.usage ?? null);
             setBriefMeta({ generatedAt: remote.createdAt, byName: remote.generatedByName });
+            setBriefId(remote.id);
             setStatus("done");
             // Hydrate localStorage so subsequent loads are instant
             saveBrief({
@@ -132,8 +138,10 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
       usage: gotUsage ?? undefined,
     });
     const assessmentId = localStorage.getItem(ACTIVE_KEY);
+    setActiveAssessmentId(assessmentId);
     if (assessmentId && buffer) {
-      void saveBriefToSupabase(assessmentId, buffer, gotUsage ?? undefined);
+      const newId = await saveBriefToSupabase(assessmentId, buffer, gotUsage ?? undefined);
+      if (newId) setBriefId(newId);
     }
     abortRef.current = null;
   };
@@ -149,6 +157,7 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
     setText("");
     setUsage(null);
     setBriefMeta(null);
+    setBriefId(null);
     setStatus("idle");
     setError(null);
   };
@@ -225,6 +234,10 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
           className="prose-llg max-h-[60vh] overflow-y-auto scrollbar-thin border border-[var(--color-border)] rounded-[6px] p-4 bg-surface shadow-inset"
           dangerouslySetInnerHTML={{ __html: html }}
         />
+      )}
+
+      {status === "done" && briefId && activeAssessmentId && (
+        <BriefFeedback briefId={briefId} assessmentId={activeAssessmentId} />
       )}
 
       {status === "streaming" && !text && (

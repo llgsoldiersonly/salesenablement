@@ -169,6 +169,61 @@ export type Database = {
           },
         ]
       }
+      sales_brief_feedback: {
+        Row: {
+          assessment_id: string
+          brief_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assessment_id: string
+          brief_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assessment_id?: string
+          brief_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_brief_feedback_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "sales_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_brief_feedback_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "sales_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_brief_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "sales_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_briefs: {
         Row: {
           assessment_id: string
@@ -335,6 +390,61 @@ export type Database = {
           {
             foreignKeyName: "sales_coach_notes_rep_id_fkey"
             columns: ["rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_notifications: {
+        Row: {
+          actor_id: string | null
+          body: string
+          created_at: string
+          id: string
+          link_assessment_id: string | null
+          read_at: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          link_assessment_id?: string | null
+          read_at?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          link_assessment_id?: string | null
+          read_at?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "sales_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_notifications_link_assessment_id_fkey"
+            columns: ["link_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "sales_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_notifications_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "sales_profiles"
             referencedColumns: ["id"]
