@@ -18,9 +18,11 @@ interface AppShellProps {
   onLoadReport?: () => void;
   onNewAssessment?: () => void;
   onBackToQueue?: () => void;
+  userName?: string;
+  userRole?: string;
 }
 
-export function AppShell({ report, recommendation, session, onLoadReport, onNewAssessment, onBackToQueue }: AppShellProps) {
+export function AppShell({ report, recommendation, session, onLoadReport, onNewAssessment, onBackToQueue, userName, userRole }: AppShellProps) {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [activeNav, setActiveNav] = useState("prospect");
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
@@ -55,6 +57,8 @@ export function AppShell({ report, recommendation, session, onLoadReport, onNewA
           firmName={report.firm.name}
           onNewAssessment={onNewAssessment}
           onBackToQueue={onBackToQueue}
+          userName={userName}
+          userRole={userRole}
         />
 
         {/* Main content area */}

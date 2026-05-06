@@ -5,7 +5,6 @@ import { LeadQueue } from "./closer/LeadQueue";
 import { LoadReportDialog } from "./LoadReportDialog";
 import { NewAssessmentDialog } from "./NewAssessmentDialog";
 import { Logo } from "./ui/Logo";
-import { MOCK_SESSION } from "../data/mock";
 import { useAuth } from "../lib/auth";
 import { recommendPackage } from "../lib/packages";
 import { getActiveReport, saveReport } from "../lib/storage";
@@ -131,13 +130,15 @@ export function CloserApp() {
       <AppShell
         report={report}
         recommendation={recommendation!}
-        session={MOCK_SESSION}
+        session={{ status: "idle", objections: [], closingTriggers: [], notes: "" }}
         onLoadReport={() => setDialogOpen(true)}
         onNewAssessment={() => setProbeOpen(true)}
         onBackToQueue={() => {
           localStorage.removeItem("llg.activeAssessment.v2");
           setReport(null);
         }}
+        userName={profile?.full_name ?? profile?.email ?? undefined}
+        userRole={profile?.role ?? undefined}
       />
       <LoadReportDialog
         open={dialogOpen}

@@ -8,7 +8,7 @@ import { SignIn } from "./components/SignIn";
 import { AdminApp } from "./components/AdminApp";
 import { CloserApp } from "./components/CloserApp";
 import { Logo } from "./components/ui/Logo";
-import { MOCK_REPORT, MOCK_SESSION } from "./data/mock";
+import { MOCK_REPORT } from "./data/mock";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { useAuth } from "./lib/auth";
 import { recommendPackage } from "./lib/packages";
@@ -22,7 +22,7 @@ export default function App() {
   if (path === "/admin") return <AdminApp />;
   if (path === "/closers") return <CloserApp />;
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const { session, loading: authLoading } = useAuth();
+  const { session, profile, loading: authLoading } = useAuth();
   const [report, setReport] = useState<ProbeReport | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [probeOpen, setProbeOpen] = useState(false);
@@ -133,9 +133,11 @@ export default function App() {
       <AppShell
         report={report}
         recommendation={recommendation!}
-        session={MOCK_SESSION}
+        session={{ status: "idle", objections: [], closingTriggers: [], notes: "" }}
         onLoadReport={() => setDialogOpen(true)}
         onNewAssessment={() => setProbeOpen(true)}
+        userName={profile?.full_name ?? profile?.email ?? undefined}
+        userRole={profile?.role ?? undefined}
       />
       <LoadReportDialog
         open={dialogOpen}

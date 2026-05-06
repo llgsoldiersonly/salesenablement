@@ -20,9 +20,11 @@ interface SidebarProps {
   firmName: string;
   onNewAssessment?: () => void;
   onBackToQueue?: () => void;
+  userName?: string;
+  userRole?: string;
 }
 
-export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment, onBackToQueue }: SidebarProps) {
+export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment, onBackToQueue, userName, userRole }: SidebarProps) {
   return (
     <aside className="w-sidebar shrink-0 h-full bg-surface border-r border-[var(--color-border)] flex flex-col py-6 px-3 gap-1">
       {/* Brand mark */}
@@ -37,12 +39,16 @@ export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment, onB
       </div>
 
       {/* User context */}
-      <div className="px-3 mb-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-brand mb-0.5">
-          Legal Marketing
-        </p>
-        <p className="text-xs text-subtle">Senior Associate</p>
-      </div>
+      {(userName || userRole) && (
+        <div className="px-3 mb-5">
+          {userName && (
+            <p className="text-xs font-semibold text-heading truncate mb-0.5">{userName}</p>
+          )}
+          {userRole && (
+            <p className="text-2xs uppercase tracking-wider text-subtle font-medium">{userRole}</p>
+          )}
+        </div>
+      )}
 
       {/* Back to queue (closers only) */}
       {onBackToQueue && (
