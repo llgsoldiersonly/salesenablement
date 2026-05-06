@@ -164,8 +164,8 @@ export function CallsLibraryView() {
           <p className="text-sm text-subtle">No calls match these filters.</p>
         </div>
       ) : (
-        <div className="bg-surface rounded-[8px] border border-[var(--color-border)] overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-surface rounded-[8px] border border-[var(--color-border)] overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-surface-2 border-b border-[var(--color-border)]">
               <tr className="text-left">
                 <Th>When</Th>

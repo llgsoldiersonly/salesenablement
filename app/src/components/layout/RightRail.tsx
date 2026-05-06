@@ -21,7 +21,7 @@ export function RightRail({
   // Live call mode — expand and host the closer cockpit.
   if (callActive && callStartedAt && report && recommendation && onEndCall) {
     return (
-      <aside className="w-[440px] shrink-0 h-full bg-surface border-l-2 border-l-brand flex flex-col py-5 px-4 overflow-hidden">
+      <aside className="w-full md:w-[440px] shrink-0 h-full bg-surface border-l-0 md:border-l-2 md:border-l-brand flex flex-col py-3 md:py-5 px-3 md:px-4 overflow-hidden">
         <CloserCockpit
           report={report}
           recommendation={recommendation}

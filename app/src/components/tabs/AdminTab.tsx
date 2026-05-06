@@ -176,23 +176,26 @@ function EmployeeCard({ stats }: { stats: EmployeeStats }) {
     <div className="bg-surface rounded-[8px] border border-[var(--color-border)] shadow-sm overflow-hidden">
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[var(--color-bg-subtle)] transition-colors"
+        className="w-full text-left px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-[var(--color-bg-subtle)] transition-colors"
       >
-        <div className="w-8 h-8 rounded-[8px] bg-brand/10 text-brand text-xs font-semibold flex items-center justify-center shrink-0">
-          {initials || "?"}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="w-8 h-8 rounded-[8px] bg-brand/10 text-brand text-xs font-semibold flex items-center justify-center shrink-0">
+            {initials || "?"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-heading truncate">{name}</p>
+            <p className="text-2xs text-subtle uppercase tracking-wider">
+              {stats.profile.role}
+            </p>
+          </div>
+          <span className="text-subtle text-xs sm:hidden ml-2">{expanded ? "▲" : "▼"}</span>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-heading truncate">{name}</p>
-          <p className="text-2xs text-subtle uppercase tracking-wider">
-            {stats.profile.role}
-          </p>
-        </div>
-        <div className="flex items-center gap-5 shrink-0">
-          <KPI label="Assessments" value={stats.assessments} />
+        <div className="grid grid-cols-5 gap-2 sm:flex sm:items-center sm:gap-5 sm:shrink-0">
+          <KPI label="Assess." value={stats.assessments} />
           <KPI label="Calls" value={stats.calls} />
           <KPI label="Won" value={stats.won} color="success" />
           <KPI
-            label="Win Rate"
+            label="Win %"
             value={`${stats.winRate}%`}
             color={
               stats.calls === 0
@@ -206,7 +209,7 @@ function EmployeeCard({ stats }: { stats: EmployeeStats }) {
           />
           <KPI label="Revenue" value={formatCents(stats.revenueCents)} color="brand" />
         </div>
-        <span className="text-subtle text-xs ml-3">{expanded ? "▲" : "▼"}</span>
+        <span className="text-subtle text-xs ml-3 hidden sm:inline">{expanded ? "▲" : "▼"}</span>
       </button>
 
       {expanded && (
@@ -412,7 +415,7 @@ function TeamMemberRow({
         !profile.active ? "opacity-50" : "",
       ].join(" ")}
     >
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3">
         <div className="w-8 h-8 rounded-[8px] bg-brand/10 text-brand text-xs font-semibold flex items-center justify-center shrink-0">
           {initials || "?"}
         </div>
@@ -426,38 +429,40 @@ function TeamMemberRow({
           <p className="text-xs text-subtle truncate">{profile.email}</p>
         </div>
 
-        <select
-          value={profile.role}
-          onChange={handleRole}
-          disabled={saving || isSelf}
-          className="text-xs bg-surface border border-[var(--color-border)] rounded-[8px] px-2 py-1.5 text-body outline-none focus:ring-1 focus:ring-brand disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {(["opener", "closer", "admin"] as SalesRole[]).map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <select
+            value={profile.role}
+            onChange={handleRole}
+            disabled={saving || isSelf}
+            className="text-xs bg-surface border border-[var(--color-border)] rounded-[8px] px-2 py-1.5 text-body outline-none focus:ring-1 focus:ring-brand disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {(["opener", "closer", "admin"] as SalesRole[]).map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABELS[r]}
+              </option>
+            ))}
+          </select>
 
-        <button
-          onClick={handleToggle}
-          disabled={saving || isSelf}
-          className={[
-            "text-xs px-3 py-1.5 rounded-[8px] border font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
-            profile.active
-              ? "border-[var(--color-danger)]/40 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/5"
-              : "border-[var(--color-success)]/40 text-[var(--color-success)] hover:bg-[var(--color-success)]/5",
-          ].join(" ")}
-        >
-          {saving ? "…" : profile.active ? "Deactivate" : "Reactivate"}
-        </button>
+          <button
+            onClick={handleToggle}
+            disabled={saving || isSelf}
+            className={[
+              "text-xs px-3 py-1.5 rounded-[8px] border font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+              profile.active
+                ? "border-[var(--color-danger)]/40 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/5"
+                : "border-[var(--color-success)]/40 text-[var(--color-success)] hover:bg-[var(--color-success)]/5",
+            ].join(" ")}
+          >
+            {saving ? "…" : profile.active ? "Deactivate" : "Reactivate"}
+          </button>
 
-        <button
-          onClick={() => setNotesOpen((v) => !v)}
-          className="text-xs text-subtle hover:text-brand transition-colors font-medium px-2 py-1.5"
-        >
-          {notesOpen ? "Hide Notes" : "Coach Notes"}
-        </button>
+          <button
+            onClick={() => setNotesOpen((v) => !v)}
+            className="text-xs text-subtle hover:text-brand transition-colors font-medium px-2 py-1.5"
+          >
+            {notesOpen ? "Hide Notes" : "Coach Notes"}
+          </button>
+        </div>
       </div>
 
       {notesOpen && (
@@ -738,30 +743,30 @@ export function AdminTab() {
   const totalRevenue = stats.reduce((s, e) => s + e.revenueCents, 0);
 
   return (
-    <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 flex flex-col gap-6">
+    <div className="flex-1 overflow-y-auto scrollbar-thin px-3 sm:px-6 py-4 sm:py-5 flex flex-col gap-4 sm:gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-heading">Team Dashboard</h1>
-          <p className="text-sm text-subtle mt-0.5">Admin view · performance by rep</p>
+          <h1 className="text-lg sm:text-xl font-semibold text-heading">Team Dashboard</h1>
+          <p className="text-xs sm:text-sm text-subtle mt-0.5">Admin view · performance by rep</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto md:overflow-visible scrollbar-thin">
           {/* View toggle */}
-          <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
+          <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden shrink-0">
             {(["performance", "team", "leads", "calls", "audit"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className={[
-                  "px-3 py-1.5 text-xs font-medium transition-colors",
+                  "px-2.5 sm:px-3 py-1.5 text-2xs sm:text-xs font-medium transition-colors whitespace-nowrap",
                   view === v
                     ? "bg-brand text-white"
                     : "text-subtle hover:text-heading bg-surface",
                 ].join(" ")}
               >
                 {v === "performance" ? "Performance"
-                  : v === "team" ? "Manage Team"
-                  : v === "leads" ? "Assign Leads"
+                  : v === "team" ? "Team"
+                  : v === "leads" ? "Leads"
                   : v === "calls" ? "Calls"
                   : "Audit"}
               </button>
@@ -770,19 +775,19 @@ export function AdminTab() {
 
           {/* Period toggle — only visible on performance view */}
           {view === "performance" && (
-            <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
+            <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden shrink-0">
               {(["week", "month"] as Period[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
                   className={[
-                    "px-4 py-1.5 text-sm font-medium transition-colors",
+                    "px-2.5 sm:px-4 py-1.5 text-2xs sm:text-sm font-medium transition-colors whitespace-nowrap",
                     period === p
                       ? "bg-brand text-white"
                       : "text-subtle hover:text-heading bg-surface",
                   ].join(" ")}
                 >
-                  {p === "week" ? "This Week" : "This Month"}
+                  {p === "week" ? "Week" : "Month"}
                 </button>
               ))}
             </div>
@@ -805,7 +810,7 @@ export function AdminTab() {
       ) : (
         <>
           {/* Team totals */}
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
             {[
               { label: "Assessments", value: totalAssessments },
               { label: "Total Calls", value: totalCalls },
@@ -857,7 +862,7 @@ export function AdminTab() {
               <h2 className="text-xs font-semibold uppercase tracking-widest text-heading mb-3">
                 Coaching Insights
               </h2>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {insights.map((ins, i) => (
                   <div
                     key={i}

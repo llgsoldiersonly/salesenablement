@@ -209,67 +209,93 @@ export function LeadQueue({
   return (
     <div className="min-h-screen bg-surface">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-surface border-b border-[var(--color-border)] px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Logo size={32} />
-          <div>
-            <span className="text-sm font-semibold text-heading">Closer Portal</span>
-            <span className="ml-2 text-2xs uppercase tracking-wider text-brand font-semibold">
-              Lead Queue
-            </span>
+      <header className="sticky top-0 z-10 bg-surface border-b border-[var(--color-border)] px-3 sm:px-6 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Logo size={32} />
+            <div className="min-w-0">
+              <span className="text-sm font-semibold text-heading">Closer Portal</span>
+              <span className="hidden sm:inline ml-2 text-2xs uppercase tracking-wider text-brand font-semibold">
+                Lead Queue
+              </span>
+            </div>
+          </div>
+          {/* Bell + sign-out always visible on mobile */}
+          <div className="flex md:hidden items-center gap-2">
+            <NotificationBell
+              onOpenAssessment={async (id) => {
+                const lead = leads.find((l) => l.assessmentId === id);
+                if (lead) await handleOpen(lead);
+              }}
+            />
+            <button
+              onClick={onSignOut}
+              className="text-2xs text-subtle hover:text-[var(--color-danger)] transition-colors"
+            >
+              Sign out
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 overflow-x-auto md:overflow-visible scrollbar-thin">
           {/* Top-level view toggle */}
-          <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
+          <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden shrink-0">
             {(["queue", "history", "coaching"] as TopView[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setTopView(v)}
                 className={[
-                  "px-3 py-1.5 text-xs font-medium transition-colors",
+                  "px-2.5 sm:px-3 py-1.5 text-2xs sm:text-xs font-medium transition-colors whitespace-nowrap",
                   topView === v
                     ? "bg-brand text-white"
                     : "text-subtle hover:text-heading bg-surface",
                 ].join(" ")}
               >
-                {v === "queue" ? "Lead Queue" : v === "history" ? "My Calls" : "Coaching"}
+                {v === "queue" ? "Queue" : v === "history" ? "My Calls" : "Coaching"}
               </button>
             ))}
           </div>
-          <NotificationBell
-            onOpenAssessment={async (id) => {
-              const lead = leads.find((l) => l.assessmentId === id);
-              if (lead) await handleOpen(lead);
-            }}
-          />
-          <span className="text-xs text-subtle">{currentUserName}</span>
+          <div className="hidden md:flex items-center gap-3">
+            <NotificationBell
+              onOpenAssessment={async (id) => {
+                const lead = leads.find((l) => l.assessmentId === id);
+                if (lead) await handleOpen(lead);
+              }}
+            />
+            <span className="text-xs text-subtle">{currentUserName}</span>
+            <button
+              onClick={() => setCalendarOpen(true)}
+              className="text-xs text-subtle hover:text-heading transition-colors"
+              title="Subscribe to follow-ups in your calendar"
+            >
+              📅 Calendar
+            </button>
+            <button
+              onClick={onSignOut}
+              className="text-xs text-subtle hover:text-[var(--color-danger)] transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
           <button
             onClick={() => setCalendarOpen(true)}
-            className="text-xs text-subtle hover:text-heading transition-colors"
-            title="Subscribe to follow-ups in your calendar"
+            className="md:hidden shrink-0 text-2xs text-subtle hover:text-heading transition-colors px-2 py-1.5"
+            title="Subscribe to follow-ups"
           >
-            📅 Calendar
-          </button>
-          <button
-            onClick={onSignOut}
-            className="text-xs text-subtle hover:text-[var(--color-danger)] transition-colors"
-          >
-            Sign out
+            📅
           </button>
         </div>
       </header>
 
       <CalendarSyncDialog open={calendarOpen} onClose={() => setCalendarOpen(false)} />
 
-      <div className="max-w-4xl mx-auto px-6 py-6 flex flex-col gap-5">
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-4 sm:gap-5">
         {/* Title bar */}
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-heading">
+            <h1 className="text-lg sm:text-xl font-semibold text-heading">
               {topView === "queue" ? "Lead Queue" : topView === "history" ? "My Calls" : "Coaching"}
             </h1>
-            <p className="text-sm text-subtle mt-0.5">
+            <p className="text-xs sm:text-sm text-subtle mt-0.5">
               {topView === "queue"
                 ? (loading ? "loading…" : `${counts.open} open · ${leads.length} total`)
                 : topView === "history"
@@ -278,13 +304,13 @@ export function LeadQueue({
             </p>
           </div>
           {topView === "queue" && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search firm, contact, opener…"
-                className="w-56 bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-1.5 text-xs text-body outline-none focus:ring-2 focus:ring-brand placeholder:text-subtle"
+                className="flex-1 md:flex-initial md:w-56 min-w-[160px] bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-1.5 text-xs text-body outline-none focus:ring-2 focus:ring-brand placeholder:text-subtle"
               />
               <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
                 {(["list", "pipeline"] as const).map((v) => (
@@ -305,11 +331,12 @@ export function LeadQueue({
               <Button variant="neutral" size="sm" onClick={() => void reload()} disabled={loading}>
                 {loading ? "…" : "Refresh"}
               </Button>
-              <Button variant="neutral" size="sm" onClick={onLoadReport}>
+              <Button variant="neutral" size="sm" onClick={onLoadReport} className="hidden sm:inline-flex">
                 Load Saved
               </Button>
               <CTAButton size="sm" onClick={onNewAssessment}>
-                New Assessment
+                <span className="sm:hidden">+ New</span>
+                <span className="hidden sm:inline">New Assessment</span>
               </CTAButton>
             </div>
           )}
@@ -476,7 +503,7 @@ function LeadCard({
   const assignedToOther = !!lead.assignedToId && !assignedToMe;
 
   return (
-    <div className="bg-surface rounded-[8px] border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all duration-150 px-4 py-3 flex items-center gap-4">
+    <div className="bg-surface rounded-[8px] border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all duration-150 px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="text-sm font-semibold text-heading truncate">{firm.name}</h3>
@@ -570,7 +597,7 @@ function LeadCard({
           )}
         </p>
       </div>
-      <CTAButton size="sm" onClick={onOpen}>
+      <CTAButton size="sm" onClick={onOpen} className="w-full sm:w-auto shrink-0">
         {claimedByMe ? "Resume" : claimedByOther ? "Take over" : "Open"}
       </CTAButton>
     </div>

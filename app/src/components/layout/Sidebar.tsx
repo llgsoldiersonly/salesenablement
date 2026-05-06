@@ -27,7 +27,7 @@ interface SidebarProps {
 
 export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment, onBackToQueue, onOpenCalendar, userName, userRole }: SidebarProps) {
   return (
-    <aside className="w-sidebar shrink-0 h-full bg-surface border-r border-[var(--color-border)] flex flex-col py-6 px-3 gap-1">
+    <aside className="w-sidebar shrink-0 h-full bg-surface border-r border-[var(--color-border)] flex flex-col py-6 px-3 gap-1 overflow-y-auto">
       {/* Brand mark */}
       <div className="flex items-center gap-2 px-3 mb-5">
         <Logo size={32} />
