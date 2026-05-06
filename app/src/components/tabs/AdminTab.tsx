@@ -162,15 +162,10 @@ function KPI({
   );
 }
 
-function EmployeeCard({ stats }: { stats: EmployeeStats }) {
+function RepCard({ stats, variant }: { stats: EmployeeStats; variant: "opener" | "closer" }) {
   const [expanded, setExpanded] = useState(false);
-  const name =
-    stats.profile.full_name ?? stats.profile.email.split("@")[0];
-  const initials = name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase())
-    .join("");
+  const name = stats.profile.full_name ?? stats.profile.email.split("@")[0];
+  const initials = name.split(/\s+/).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
 
   return (
     <div className="bg-surface rounded-[8px] border border-[var(--color-border)] shadow-sm overflow-hidden">
@@ -184,63 +179,66 @@ function EmployeeCard({ stats }: { stats: EmployeeStats }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-heading truncate">{name}</p>
-            <p className="text-2xs text-subtle uppercase tracking-wider">
-              {stats.profile.role}
-            </p>
+            <p className="text-2xs text-subtle uppercase tracking-wider">{stats.profile.role}</p>
           </div>
           <span className="text-subtle text-xs sm:hidden ml-2">{expanded ? "▲" : "▼"}</span>
         </div>
-        <div className="grid grid-cols-5 gap-2 sm:flex sm:items-center sm:gap-5 sm:shrink-0">
-          <KPI label="Assess." value={stats.assessments} />
-          <KPI label="Calls" value={stats.calls} />
-          <KPI label="Won" value={stats.won} color="success" />
-          <KPI
-            label="Win %"
-            value={`${stats.winRate}%`}
-            color={
-              stats.calls === 0
-                ? undefined
-                : stats.winRate >= 40
-                  ? "success"
-                  : stats.winRate < 20
-                    ? "danger"
-                    : undefined
-            }
-          />
-          <KPI label="Revenue" value={formatCents(stats.revenueCents)} color="brand" />
-        </div>
+
+        {variant === "opener" ? (
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-5 sm:shrink-0">
+            <KPI label="Site Audits" value={stats.assessments} />
+            <KPI label="Handoffs" value={stats.calls} />
+            <KPI label="Revenue" value={formatCents(stats.revenueCents)} color="brand" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-2 sm:flex sm:items-center sm:gap-5 sm:shrink-0">
+            <KPI label="Calls" value={stats.calls} />
+            <KPI label="Won" value={stats.won} color="success" />
+            <KPI
+              label="Win %"
+              value={`${stats.winRate}%`}
+              color={stats.calls === 0 ? undefined : stats.winRate >= 40 ? "success" : stats.winRate < 20 ? "danger" : undefined}
+            />
+            <KPI label="Revenue" value={formatCents(stats.revenueCents)} color="brand" />
+          </div>
+        )}
         <span className="text-subtle text-xs ml-3 hidden sm:inline">{expanded ? "▲" : "▼"}</span>
       </button>
 
       {expanded && (
         <div className="border-t border-[var(--color-border)] px-4 py-3 bg-[var(--color-bg-subtle)] flex gap-6 flex-wrap">
-          <div>
-            <p className="text-2xs text-subtle uppercase tracking-wider mb-1">
-              Avg Call Length
-            </p>
-            <p className="text-sm font-semibold text-heading">
-              {stats.avgCallMinutes > 0 ? `${stats.avgCallMinutes}m` : "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-2xs text-subtle uppercase tracking-wider mb-1">Deals Lost</p>
-            <p className="text-sm font-semibold text-heading">{stats.lost}</p>
-          </div>
-          {stats.topObjections.length > 0 && (
-            <div>
-              <p className="text-2xs text-subtle uppercase tracking-wider mb-1">
-                Top Objections
-              </p>
-              <div className="flex gap-1 flex-wrap">
-                {stats.topObjections.map((o) => (
-                  <span
-                    key={o}
-                    className="text-2xs bg-surface border border-[var(--color-border)] rounded px-1.5 py-0.5 text-body"
-                  >
-                    {OBJECTION_LABELS[o] ?? o}
-                  </span>
-                ))}
+          {variant === "closer" && (
+            <>
+              <div>
+                <p className="text-2xs text-subtle uppercase tracking-wider mb-1">Avg Call Length</p>
+                <p className="text-sm font-semibold text-heading">
+                  {stats.avgCallMinutes > 0 ? `${stats.avgCallMinutes}m` : "—"}
+                </p>
               </div>
+              <div>
+                <p className="text-2xs text-subtle uppercase tracking-wider mb-1">Deals Lost</p>
+                <p className="text-sm font-semibold text-heading">{stats.lost}</p>
+              </div>
+              {stats.topObjections.length > 0 && (
+                <div>
+                  <p className="text-2xs text-subtle uppercase tracking-wider mb-1">Top Objections</p>
+                  <div className="flex gap-1 flex-wrap">
+                    {stats.topObjections.map((o) => (
+                      <span key={o} className="text-2xs bg-surface border border-[var(--color-border)] rounded px-1.5 py-0.5 text-body">
+                        {OBJECTION_LABELS[o] ?? o}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {variant === "opener" && stats.assessments > 0 && (
+            <div>
+              <p className="text-2xs text-subtle uppercase tracking-wider mb-1">Conversion</p>
+              <p className="text-sm font-semibold text-heading">
+                {stats.assessments > 0 ? `${Math.round((stats.calls / stats.assessments) * 100)}%` : "—"}
+              </p>
             </div>
           )}
           <div>
@@ -734,12 +732,15 @@ export function AdminTab() {
     });
   }, [period, view]);
 
+  const openers = stats.filter((s) => s.profile.role === "opener");
+  const closers = stats.filter((s) => s.profile.role !== "opener");
+
   const insights = buildInsights(stats);
-  const totalAssessments = stats.reduce((s, e) => s + e.assessments, 0);
-  const totalCalls = stats.reduce((s, e) => s + e.calls, 0);
-  const totalWon = stats.reduce((s, e) => s + e.won, 0);
-  const teamWinRate =
-    totalCalls > 0 ? Math.round((totalWon / totalCalls) * 100) : 0;
+  const totalAssessments = openers.reduce((s, e) => s + e.assessments, 0);
+  const totalHandoffs = openers.reduce((s, e) => s + e.calls, 0);
+  const totalCalls = closers.reduce((s, e) => s + e.calls, 0);
+  const totalWon = closers.reduce((s, e) => s + e.won, 0);
+  const teamWinRate = totalCalls > 0 ? Math.round((totalWon / totalCalls) * 100) : 0;
   const totalRevenue = stats.reduce((s, e) => s + e.revenueCents, 0);
 
   return (
@@ -809,51 +810,54 @@ export function AdminTab() {
         </div>
       ) : (
         <>
-          {/* Team totals */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-            {[
-              { label: "Assessments", value: totalAssessments },
-              { label: "Total Calls", value: totalCalls },
-              { label: "Closed Won", value: totalWon, color: "success" as const },
-              {
-                label: "Team Win Rate",
-                value: `${teamWinRate}%`,
-                color:
-                  totalCalls === 0
-                    ? undefined
-                    : teamWinRate >= 30
-                      ? ("success" as const)
-                      : ("danger" as const),
-              },
-              {
-                label: "Total Revenue",
-                value: formatCents(totalRevenue),
-                color: "brand" as const,
-              },
-            ].map((tile) => (
-              <div
-                key={tile.label}
-                className="bg-surface rounded-[8px] border border-[var(--color-border)] shadow-sm px-4 py-4 text-center"
-              >
-                <p
-                  className={[
-                    "text-2xl font-semibold tabular-nums",
-                    tile.color === "success"
-                      ? "text-[var(--color-success)]"
-                      : tile.color === "danger"
-                        ? "text-[var(--color-danger)]"
-                        : tile.color === "brand"
-                          ? "text-brand"
-                          : "text-heading",
-                  ].join(" ")}
-                >
-                  {tile.value}
-                </p>
-                <p className="text-2xs text-subtle uppercase tracking-wider mt-1">
-                  {tile.label}
-                </p>
+          {/* Team totals — split by role */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Opener KPIs */}
+            <div className="bg-surface rounded-[8px] border border-[var(--color-border)] shadow-sm p-4">
+              <p className="text-2xs uppercase tracking-widest font-semibold text-subtle mb-3">
+                Openers · {openers.length} reps
+              </p>
+              <div className="flex gap-6">
+                <div className="text-center">
+                  <p className="text-2xl font-semibold tabular-nums text-heading">{totalAssessments}</p>
+                  <p className="text-2xs text-subtle uppercase tracking-wider mt-0.5">Site Audits</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-semibold tabular-nums text-heading">{totalHandoffs}</p>
+                  <p className="text-2xs text-subtle uppercase tracking-wider mt-0.5">Handoffs</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-semibold tabular-nums text-brand">{formatCents(openers.reduce((s, e) => s + e.revenueCents, 0))}</p>
+                  <p className="text-2xs text-subtle uppercase tracking-wider mt-0.5">Revenue</p>
+                </div>
               </div>
-            ))}
+            </div>
+            {/* Closer KPIs */}
+            <div className="bg-surface rounded-[8px] border border-[var(--color-border)] shadow-sm p-4">
+              <p className="text-2xs uppercase tracking-widest font-semibold text-subtle mb-3">
+                Closers · {closers.length} reps
+              </p>
+              <div className="flex gap-6">
+                <div className="text-center">
+                  <p className="text-2xl font-semibold tabular-nums text-heading">{totalCalls}</p>
+                  <p className="text-2xs text-subtle uppercase tracking-wider mt-0.5">Calls</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-semibold tabular-nums text-[var(--color-success)]">{totalWon}</p>
+                  <p className="text-2xs text-subtle uppercase tracking-wider mt-0.5">Won</p>
+                </div>
+                <div className="text-center">
+                  <p className={["text-2xl font-semibold tabular-nums", totalCalls === 0 ? "text-heading" : teamWinRate >= 30 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"].join(" ")}>
+                    {teamWinRate}%
+                  </p>
+                  <p className="text-2xs text-subtle uppercase tracking-wider mt-0.5">Win Rate</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-semibold tabular-nums text-brand">{formatCents(totalRevenue)}</p>
+                  <p className="text-2xs text-subtle uppercase tracking-wider mt-0.5">Revenue</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Coaching insights */}
@@ -883,21 +887,35 @@ export function AdminTab() {
             </section>
           )}
 
-          {/* Employee list */}
-          <section>
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-heading mb-3">
-              Team Members
-            </h2>
-            {stats.length === 0 ? (
-              <p className="text-sm text-subtle">No team members found.</p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {stats.map((s) => (
-                  <EmployeeCard key={s.profile.id} stats={s} />
-                ))}
+          {/* Openers section */}
+          {openers.length > 0 && (
+            <section>
+              <div className="mb-3">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-heading">Openers</h2>
+                <p className="text-2xs text-subtle mt-0.5">Site audits run · leads handed off to closers</p>
               </div>
-            )}
-          </section>
+              <div className="flex flex-col gap-2">
+                {openers.map((s) => <RepCard key={s.profile.id} stats={s} variant="opener" />)}
+              </div>
+            </section>
+          )}
+
+          {/* Closers section */}
+          {closers.length > 0 && (
+            <section>
+              <div className="mb-3">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-heading">Closers</h2>
+                <p className="text-2xs text-subtle mt-0.5">Calls taken · deals closed · revenue generated</p>
+              </div>
+              <div className="flex flex-col gap-2">
+                {closers.map((s) => <RepCard key={s.profile.id} stats={s} variant="closer" />)}
+              </div>
+            </section>
+          )}
+
+          {stats.length === 0 && (
+            <p className="text-sm text-subtle">No team members found.</p>
+          )}
 
           {/* Activity feed */}
           <section>
