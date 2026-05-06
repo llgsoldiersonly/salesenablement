@@ -120,9 +120,8 @@ export async function handleAsk(
 
   try {
     const stream = client.messages.stream({
-      model: "claude-opus-4-7",
+      model: "claude-haiku-4-5",
       max_tokens: 512,
-      thinking: { type: "adaptive" },
       system: buildSystemPrompt(context),
       messages: [{ role: "user", content: question.trim() }],
     });
