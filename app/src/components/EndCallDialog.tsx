@@ -15,9 +15,10 @@ const OUTCOMES: { value: Outcome; label: string }[] = [
   { value: "not_interested",      label: "Not Interested" },
 ];
 
-const NOTES_KEY_PREFIX    = "llg.callNotes.";
-const TRIGGERS_KEY_PREFIX = "llg.callTriggers.";
-const ACTIVE_KEY          = "llg.activeAssessment.v2";
+const NOTES_KEY_PREFIX      = "llg.callNotes.";
+const TRIGGERS_KEY_PREFIX   = "llg.callTriggers.";
+const OBJECTIONS_KEY_PREFIX = "llg.callObjections.";
+const ACTIVE_KEY            = "llg.activeAssessment.v2";
 
 const inputClass =
   "w-full bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-2 text-sm text-body outline-none focus:ring-2 focus:ring-brand";
@@ -29,12 +30,26 @@ interface EndCallDialogProps {
   onDone: () => void;
 }
 
+function defaultNextActionFor(outcome: Outcome): string {
+  // Local datetime-input string (YYYY-MM-DDTHH:mm), no timezone suffix.
+  const d = new Date();
+  if (outcome === "callback_requested") {
+    d.setDate(d.getDate() + 1);
+  } else {
+    d.setDate(d.getDate() + 3);
+  }
+  d.setHours(10, 0, 0, 0);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function EndCallDialog({ open, callStartedAt, firmKey, onDone }: EndCallDialogProps) {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [outcome, setOutcome] = useState<Outcome>("follow_up_scheduled");
   const [packageSold, setPackageSold] = useState("");
   const [contractValue, setContractValue] = useState("");
   const [notes, setNotes] = useState("");
+  const [nextActionAt, setNextActionAt] = useState(defaultNextActionFor("follow_up_scheduled"));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -43,7 +58,16 @@ export function EndCallDialog({ open, callStartedAt, firmKey, onDone }: EndCallD
     setPackageSold("");
     setContractValue("");
     setNotes(localStorage.getItem(NOTES_KEY_PREFIX + firmKey) ?? "");
+    setNextActionAt(defaultNextActionFor("follow_up_scheduled"));
   }, [open, firmKey]);
+
+  useEffect(() => {
+    if (outcome === "follow_up_scheduled" || outcome === "callback_requested") {
+      setNextActionAt(defaultNextActionFor(outcome));
+    }
+  }, [outcome]);
+
+  const needsNextAction = outcome === "follow_up_scheduled" || outcome === "callback_requested";
 
   if (!open) return null;
 
@@ -69,10 +93,42 @@ export function EndCallDialog({ open, callStartedAt, firmKey, onDone }: EndCallD
       triggersHit = raw ? (JSON.parse(raw) as string[]) : [];
     } catch { /* ignore */ }
 
+    let objectionsHit: string[] = [];
+    try {
+      const raw = localStorage.getItem(OBJECTIONS_KEY_PREFIX + firmKey);
+      objectionsHit = raw ? (JSON.parse(raw) as string[]) : [];
+    } catch { /* ignore */ }
+
+    const nextActionIso =
+      needsNextAction && nextActionAt ? new Date(nextActionAt).toISOString() : null;
+
     if (assessmentId) {
+      // Resolve who's the opener vs closer on this row.
+      // - Openers acting on their own lead: opener_id = self, closer_id = null.
+      // - Closers / admins on a closer call: opener_id = original creator of
+      //   the assessment (so opener stats stay correct), closer_id = self.
+      let openerId = user.id;
+      let closerId: string | null = null;
+
+      if (role !== "opener") {
+        const { data: assessment } = await supabase
+          .from("sales_assessments")
+          .select("created_by")
+          .eq("id", assessmentId)
+          .maybeSingle();
+
+        closerId = user.id;
+        if (assessment?.created_by) {
+          openerId = assessment.created_by;
+        }
+        // If the assessment lookup failed, fall back to writing the closer as
+        // both opener_id and closer_id so we still capture the call.
+      }
+
       await supabase.from("sales_calls").insert({
         assessment_id: assessmentId,
-        opener_id: user.id,
+        opener_id: openerId,
+        closer_id: closerId,
         started_at: new Date(callStartedAt).toISOString(),
         ended_at: endedAt,
         duration_seconds: finalDuration,
@@ -81,6 +137,8 @@ export function EndCallDialog({ open, callStartedAt, firmKey, onDone }: EndCallD
         package_sold: packageSold || null,
         contract_value_cents: contractCents,
         triggers_hit: triggersHit.length > 0 ? triggersHit : null,
+        objections_hit: objectionsHit.length > 0 ? objectionsHit : null,
+        next_action_at: nextActionIso,
       });
 
       void supabase.from("sales_activity").insert({
@@ -98,6 +156,7 @@ export function EndCallDialog({ open, callStartedAt, firmKey, onDone }: EndCallD
 
     localStorage.removeItem(NOTES_KEY_PREFIX + firmKey);
     localStorage.removeItem(TRIGGERS_KEY_PREFIX + firmKey);
+    localStorage.removeItem(OBJECTIONS_KEY_PREFIX + firmKey);
 
     setSaving(false);
     onDone();
@@ -131,6 +190,24 @@ export function EndCallDialog({ open, callStartedAt, firmKey, onDone }: EndCallD
               ))}
             </select>
           </div>
+
+          {needsNextAction && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold uppercase tracking-wider text-subtle">
+                {outcome === "callback_requested" ? "Callback by" : "Next follow-up"}
+              </label>
+              <input
+                type="datetime-local"
+                value={nextActionAt}
+                onChange={(e) => setNextActionAt(e.target.value)}
+                required
+                className={inputClass}
+              />
+              <p className="text-2xs text-subtle">
+                Surfaces this lead in the Follow-ups view at that time.
+              </p>
+            </div>
+          )}
 
           {outcome === "closed_won" && (
             <div className="flex gap-3">
@@ -178,7 +255,8 @@ export function EndCallDialog({ open, callStartedAt, firmKey, onDone }: EndCallD
 
           {!assessmentId && (
             <p className="text-xs text-[var(--color-danger)]">
-              No active assessment — outcome will be saved without linking to a firm.
+              No active firm — open a lead from the queue first to log this call.
+              Use Skip to end without saving.
             </p>
           )}
 
@@ -186,7 +264,7 @@ export function EndCallDialog({ open, callStartedAt, firmKey, onDone }: EndCallD
             <Button variant="neutral" type="button" onClick={onDone} disabled={saving}>
               Skip
             </Button>
-            <CTAButton type="submit" disabled={saving}>
+            <CTAButton type="submit" disabled={saving || !assessmentId}>
               {saving ? "Saving…" : "Save & End Call"}
             </CTAButton>
           </div>

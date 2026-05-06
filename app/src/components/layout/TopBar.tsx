@@ -3,6 +3,7 @@ import { CTAButton } from "../ui/Button";
 import { DotBadge } from "../ui/Badge";
 import { Logo } from "../ui/Logo";
 import { ShareButton } from "../ShareButton";
+import { NotificationBell } from "../NotificationBell";
 import { useAuth } from "../../lib/auth";
 import type { ProbeReport, TabId } from "../../types";
 
@@ -12,6 +13,7 @@ const BASE_TABS: { id: TabId; label: string }[] = [
   { id: "competitors",  label: "Competitors" },
   { id: "calculator",   label: "Calculator" },
   { id: "notes",        label: "Notes" },
+  { id: "activity",     label: "Activity" },
 ];
 
 interface TopBarProps {
@@ -21,9 +23,10 @@ interface TopBarProps {
   onCloseDeal?: () => void;
   onLoadReport?: () => void;
   report?: ProbeReport;
+  onOpenSidebar?: () => void;
 }
 
-export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoadReport, report }: TopBarProps) {
+export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoadReport, report, onOpenSidebar }: TopBarProps) {
   const { profile, role, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const tabs = role === "admin"
@@ -40,30 +43,43 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
   return (
     <header className="shrink-0 bg-surface border-b border-[var(--color-border)] flex flex-col">
       {/* Brand row */}
-      <div className="flex items-center justify-between px-6 pt-4 pb-2">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between px-3 sm:px-6 pt-3 sm:pt-4 pb-2 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {onOpenSidebar && (
+            <button
+              onClick={onOpenSidebar}
+              aria-label="open menu"
+              className="md:hidden w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md flex items-center justify-center text-subtle text-base"
+            >
+              ☰
+            </button>
+          )}
           <Logo size={36} />
-          <span className="text-base font-semibold text-heading tracking-tight">
-            Legal Growth Dashboard
+          <span className="text-sm sm:text-base font-semibold text-heading tracking-tight truncate">
+            <span className="hidden sm:inline">Legal Growth Dashboard</span>
+            <span className="sm:hidden">LLG</span>
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {callStatus === "active" && (
-            <DotBadge color="green" label="Closer Call Active" />
+            <span className="hidden sm:inline-flex">
+              <DotBadge color="green" label="Closer Call Active" />
+            </span>
           )}
-          {/* Icon buttons */}
+          {/* Icon buttons — hide secondary ones on mobile */}
           <button
             onClick={onLoadReport}
             aria-label="load report"
             title="Load probe report"
-            className="w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 flex items-center justify-center text-subtle text-sm"
+            className="hidden sm:flex w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 items-center justify-center text-subtle text-sm"
           >
             📁
           </button>
-          {report && <ShareButton report={report} variant="icon" />}
+          {report && <span className="hidden sm:inline-flex"><ShareButton report={report} variant="icon" /></span>}
+          <NotificationBell />
           <button
             aria-label="history"
-            className="w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 flex items-center justify-center text-subtle text-sm"
+            className="hidden sm:flex w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 items-center justify-center text-subtle text-sm"
           >
             ⟳
           </button>
@@ -123,7 +139,7 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
       </div>
 
       {/* Tab strip */}
-      <div className="flex items-end px-6 border-t border-[var(--color-border)]">
+      <div className="flex items-end px-3 sm:px-6 border-t border-[var(--color-border)] overflow-x-auto scrollbar-thin">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -131,7 +147,7 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={[
-                "px-4 py-3 text-sm font-medium transition-colors duration-150",
+                "px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors duration-150 whitespace-nowrap",
                 "rounded-t-[8px] -mb-px border-b-2",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
                 isActive

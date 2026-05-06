@@ -1,7 +1,12 @@
+import { useEffect, useState } from "react";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { GeneratedBrief } from "../GeneratedBrief";
+import { PriorActivity } from "../PriorActivity";
+import { LeadContactPanel } from "../LeadContactPanel";
 import type { PackageRecommendation, ProbeReport } from "../../types";
+
+const ACTIVE_KEY = "llg.activeAssessment.v2";
 
 const PACKAGE_LABELS: Record<string, string> = {
   "live-intakes": "Live Intakes",
@@ -22,8 +27,15 @@ export function OverviewTab({ report, recommendation }: OverviewTabProps) {
   const places = sources.googlePlaces.data;
   const serp = sources.serpLocal.data;
   const competitors = serp?.topLocalPackCompetitors ?? [];
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  useEffect(() => {
+    setAssessmentId(localStorage.getItem(ACTIVE_KEY));
+  }, []);
   return (
     <div className="flex flex-col gap-6 p-6 overflow-y-auto scrollbar-thin flex-1">
+
+      {assessmentId && <LeadContactPanel assessmentId={assessmentId} />}
+      {assessmentId && <PriorActivity assessmentId={assessmentId} />}
 
       {/* Firm hero card + competitor table — side by side */}
       <div className="grid grid-cols-2 gap-6">

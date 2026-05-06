@@ -19,11 +19,15 @@ interface SidebarProps {
   onNavChange: (id: string) => void;
   firmName: string;
   onNewAssessment?: () => void;
+  onBackToQueue?: () => void;
+  onOpenCalendar?: () => void;
+  userName?: string;
+  userRole?: string;
 }
 
-export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment }: SidebarProps) {
+export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment, onBackToQueue, onOpenCalendar, userName, userRole }: SidebarProps) {
   return (
-    <aside className="w-sidebar shrink-0 h-full bg-surface border-r border-[var(--color-border)] flex flex-col py-6 px-3 gap-1">
+    <aside className="w-sidebar shrink-0 h-full bg-surface border-r border-[var(--color-border)] flex flex-col py-6 px-3 gap-1 overflow-y-auto">
       {/* Brand mark */}
       <div className="flex items-center gap-2 px-3 mb-5">
         <Logo size={32} />
@@ -36,12 +40,26 @@ export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment }: S
       </div>
 
       {/* User context */}
-      <div className="px-3 mb-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-brand mb-0.5">
-          Legal Marketing
-        </p>
-        <p className="text-xs text-subtle">Senior Associate</p>
-      </div>
+      {(userName || userRole) && (
+        <div className="px-3 mb-5">
+          {userName && (
+            <p className="text-xs font-semibold text-heading truncate mb-0.5">{userName}</p>
+          )}
+          {userRole && (
+            <p className="text-2xs uppercase tracking-wider text-subtle font-medium">{userRole}</p>
+          )}
+        </div>
+      )}
+
+      {/* Back to queue (closers only) */}
+      {onBackToQueue && (
+        <button
+          onClick={onBackToQueue}
+          className="flex items-center gap-2 mx-3 mb-3 px-3 py-1.5 rounded-[8px] text-2xs uppercase tracking-wider font-semibold text-subtle hover:text-brand hover:shadow-sm transition-all duration-200"
+        >
+          <span aria-hidden="true">←</span> Lead Queue
+        </button>
+      )}
 
       {/* Nav items */}
       <nav className="flex flex-col gap-1 flex-1">
@@ -73,8 +91,11 @@ export function Sidebar({ activeNav, onNavChange, firmName, onNewAssessment }: S
 
       {/* Bottom: settings + CTA */}
       <div className="flex flex-col gap-3 mt-4 px-1">
-        <button className="flex items-center gap-3 px-3 py-2 rounded-[8px] text-subtle text-xs font-semibold uppercase tracking-wider hover:shadow-sm hover:text-heading transition-all duration-200">
-          <span aria-hidden="true">⚙️</span> Settings
+        <button
+          onClick={onOpenCalendar}
+          className="flex items-center gap-3 px-3 py-2 rounded-[8px] text-subtle text-xs font-semibold uppercase tracking-wider hover:shadow-sm hover:text-heading transition-all duration-200"
+        >
+          <span aria-hidden="true">📅</span> Calendar Sync
         </button>
         <CTAButton size="md" className="w-full text-xs tracking-widest" onClick={onNewAssessment}>
           + New Assessment

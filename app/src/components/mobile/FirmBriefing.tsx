@@ -235,14 +235,7 @@ export function FirmBriefing({ report, recommendation }: FirmBriefingProps) {
           </CTAButton>
         </div>
 
-        {/* Footer links */}
-        <div className="flex items-center justify-center gap-4 py-2 border-t border-[var(--color-border)]">
-          <button className="text-xs text-subtle flex items-center gap-1">📝 Log outcome</button>
-          <span className="text-[var(--color-border-strong)]">|</span>
-          <button className="text-xs text-subtle">View raw probe data</button>
-        </div>
-
-        <p className="text-2xs text-subtle text-center pb-4 leading-relaxed">
+        <p className="text-2xs text-subtle text-center py-4 leading-relaxed border-t border-[var(--color-border)] mt-2">
           Estimates and benchmarks are based on publicly available data. Not legal or business
           guarantees. All competitor data is for illustrative comparative analysis.
         </p>

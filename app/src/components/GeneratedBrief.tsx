@@ -1,10 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { Card } from "./ui/Card";
 import { Button, CTAButton } from "./ui/Button";
+import { BriefFeedback } from "./BriefFeedback";
 import { streamBrief } from "../lib/streamBrief";
-import { firmKey, getBrief, saveBrief, deleteBrief } from "../lib/briefStorage";
+import {
+  firmKey,
+  getBrief,
+  saveBrief,
+  deleteBrief,
+  saveBriefToSupabase,
+  loadLatestBriefFromSupabase,
+} from "../lib/briefStorage";
 import type { PackageRecommendation, ProbeReport } from "../types";
+
+const ACTIVE_KEY = "llg.activeAssessment.v2";
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 interface GeneratedBriefProps {
   report: ProbeReport;
@@ -21,22 +42,49 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
   const [status, setStatus] = useState<Status>("idle");
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [briefMeta, setBriefMeta] = useState<{ generatedAt: string; byName: string | null } | null>(null);
+  const [briefId, setBriefId] = useState<string | null>(null);
+  const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(null);
   const abortRef = useRef<(() => void) | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Restore any persisted brief for this firm on mount / report change.
+  // Restore brief: check localStorage first, then fall back to Supabase.
   useEffect(() => {
     const stored = getBrief(key);
     if (stored) {
       setText(stored.text);
       setUsage(stored.usage ?? null);
+      setBriefMeta({ generatedAt: stored.generatedAt, byName: null });
       setStatus("done");
       setError(null);
     } else {
       setText("");
       setUsage(null);
+      setBriefMeta(null);
+      setBriefId(null);
       setStatus("idle");
       setError(null);
+      // Try Supabase fallback for cross-device / team-shared briefs
+      const assessmentId = localStorage.getItem(ACTIVE_KEY);
+      setActiveAssessmentId(assessmentId);
+      if (assessmentId) {
+        void loadLatestBriefFromSupabase(assessmentId).then((remote) => {
+          if (remote) {
+            setText(remote.bodyMd);
+            setUsage(remote.usage ?? null);
+            setBriefMeta({ generatedAt: remote.createdAt, byName: remote.generatedByName });
+            setBriefId(remote.id);
+            setStatus("done");
+            // Hydrate localStorage so subsequent loads are instant
+            saveBrief({
+              firmKey: key,
+              text: remote.bodyMd,
+              generatedAt: remote.createdAt,
+              usage: remote.usage,
+            });
+          }
+        });
+      }
     }
     return () => abortRef.current?.();
   }, [key]);
@@ -81,13 +129,21 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
       }
     }
 
+    const generatedAt = new Date().toISOString();
     setStatus("done");
+    setBriefMeta({ generatedAt, byName: null });
     saveBrief({
       firmKey: key,
       text: buffer,
-      generatedAt: new Date().toISOString(),
+      generatedAt,
       usage: gotUsage ?? undefined,
     });
+    const assessmentId = localStorage.getItem(ACTIVE_KEY);
+    setActiveAssessmentId(assessmentId);
+    if (assessmentId && buffer) {
+      const newId = await saveBriefToSupabase(assessmentId, buffer, gotUsage ?? undefined);
+      if (newId) setBriefId(newId);
+    }
     abortRef.current = null;
   };
 
@@ -101,6 +157,8 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
     deleteBrief(key);
     setText("");
     setUsage(null);
+    setBriefMeta(null);
+    setBriefId(null);
     setStatus("idle");
     setError(null);
   };
@@ -115,7 +173,8 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
 
   const html = useMemo(() => {
     if (!text) return "";
-    return marked.parse(text, { gfm: true, breaks: false }) as string;
+    const raw = marked.parse(text, { gfm: true, breaks: false, async: false }) as string;
+    return DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
   }, [text]);
 
   return (
@@ -130,11 +189,21 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
                 Streaming from claude-opus-4-7…
               </span>
             )}
-            {status === "done" && usage && (
+            {status === "done" && (
               <span>
-                {usage.output.toLocaleString()} output tokens · cache hit{" "}
-                {usage.cache_read.toLocaleString()} / write{" "}
-                {usage.cache_write.toLocaleString()}
+                {briefMeta && (
+                  <>
+                    {briefMeta.byName ? `Generated by ${briefMeta.byName} · ` : ""}
+                    {timeAgo(briefMeta.generatedAt)}
+                    {usage ? " · " : ""}
+                  </>
+                )}
+                {usage && (
+                  <>
+                    {usage.output.toLocaleString()} tokens · cache{" "}
+                    {usage.cache_read.toLocaleString()} / {usage.cache_write.toLocaleString()}
+                  </>
+                )}
               </span>
             )}
             {status === "idle" && "Generate a closer-call brief from this firm's probe data"}
@@ -167,6 +236,10 @@ export function GeneratedBrief({ report, recommendation }: GeneratedBriefProps) 
           className="prose-llg max-h-[60vh] overflow-y-auto scrollbar-thin border border-[var(--color-border)] rounded-[6px] p-4 bg-surface shadow-inset"
           dangerouslySetInnerHTML={{ __html: html }}
         />
+      )}
+
+      {status === "done" && briefId && activeAssessmentId && (
+        <BriefFeedback briefId={briefId} assessmentId={activeAssessmentId} />
       )}
 
       {status === "streaming" && !text && (

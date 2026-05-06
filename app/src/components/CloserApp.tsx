@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { SignIn } from "./SignIn";
 import { AppShell } from "./layout/AppShell";
-import { EmptyState } from "./EmptyState";
+import { LeadQueue } from "./closer/LeadQueue";
 import { LoadReportDialog } from "./LoadReportDialog";
 import { NewAssessmentDialog } from "./NewAssessmentDialog";
 import { Logo } from "./ui/Logo";
-import { MOCK_SESSION } from "../data/mock";
 import { useAuth } from "../lib/auth";
+import { releaseLead } from "../lib/claims";
 import { recommendPackage } from "../lib/packages";
 import { getActiveReport, saveReport } from "../lib/storage";
 import { clearHash, readReportFromHash } from "../lib/share";
 import type { ProbeReport } from "../types";
+
+const ACTIVE_KEY = "llg.activeAssessment.v2";
 
 export function CloserApp() {
   const { session, profile, role, loading: authLoading, signOut } = useAuth();
@@ -44,6 +46,18 @@ export function CloserApp() {
     })();
     return () => { cancelled = true; };
   }, [authLoading, session]);
+
+  // Best-effort: release any active lead claim when the tab is closed or
+  // navigated away. The 15-minute server-side claim timeout is the
+  // guaranteed backstop if the in-flight request doesn't complete.
+  useEffect(() => {
+    const handlePageHide = () => {
+      const activeId = localStorage.getItem(ACTIVE_KEY);
+      if (activeId) void releaseLead(activeId);
+    };
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, []);
 
   if (authLoading) {
     return (
@@ -103,9 +117,13 @@ export function CloserApp() {
   if (!report) {
     return (
       <>
-        <EmptyState
+        <LeadQueue
+          currentUserId={session.user.id}
+          currentUserName={profile?.full_name ?? profile?.email ?? "Closer"}
+          onOpenLead={(r) => setReport(r)}
           onLoadReport={() => setDialogOpen(true)}
           onNewAssessment={() => setProbeOpen(true)}
+          onSignOut={() => void signOut()}
         />
         <LoadReportDialog
           open={dialogOpen}
@@ -127,9 +145,17 @@ export function CloserApp() {
       <AppShell
         report={report}
         recommendation={recommendation!}
-        session={MOCK_SESSION}
+        session={{ status: "idle", objections: [], closingTriggers: [], notes: "" }}
         onLoadReport={() => setDialogOpen(true)}
         onNewAssessment={() => setProbeOpen(true)}
+        onBackToQueue={() => {
+          const activeId = localStorage.getItem(ACTIVE_KEY);
+          if (activeId) void releaseLead(activeId);
+          localStorage.removeItem(ACTIVE_KEY);
+          setReport(null);
+        }}
+        userName={profile?.full_name ?? profile?.email ?? undefined}
+        userRole={profile?.role ?? undefined}
       />
       <LoadReportDialog
         open={dialogOpen}

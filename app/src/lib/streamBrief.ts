@@ -1,4 +1,5 @@
 import type { PackageRecommendation, ProbeReport } from "../types";
+import { getAuthHeader } from "./authHeader.js";
 
 /**
  * Streams a brief from /api/brief (NDJSON over fetch). Returns an async
@@ -26,9 +27,10 @@ export function streamBrief(
   async function* iter(): AsyncGenerator<BriefEvent, void, void> {
     let res: Response;
     try {
+      const authHeader = await getAuthHeader();
       res = await fetch("/api/brief", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeader },
         body: JSON.stringify({ report, recommendation }),
         signal: controller.signal,
       });

@@ -57,11 +57,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setProfile(data);
 
-    // Fire-and-forget: bump last_seen_at
-    void supabase
-      .from("sales_profiles")
-      .update({ last_seen_at: new Date().toISOString() })
-      .eq("id", userId);
+    // Throttle last_seen_at writes: skip if bumped in the last 10 minutes.
+    const key = `llg.lastSeenBump.${userId}`;
+    const last = Number(localStorage.getItem(key) ?? 0);
+    const now = Date.now();
+    if (now - last > 10 * 60 * 1000) {
+      localStorage.setItem(key, String(now));
+      void supabase
+        .from("sales_profiles")
+        .update({ last_seen_at: new Date(now).toISOString() })
+        .eq("id", userId);
+    }
   }, []);
 
   useEffect(() => {
@@ -98,6 +104,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    // Wipe per-call state so the next user on this device doesn't inherit
+    // the previous user's notes, triggers, objections, or active assessment.
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (
+          k &&
+          (k.startsWith("llg.callNotes.") ||
+            k.startsWith("llg.callTriggers.") ||
+            k.startsWith("llg.callObjections.") ||
+            k === "llg.activeAssessment.v2" ||
+            k === "llg.briefs.v1")
+        ) {
+          keys.push(k);
+        }
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      /* ignore storage failures */
+    }
   }, []);
 
   const refreshProfile = useCallback(async () => {

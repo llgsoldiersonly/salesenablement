@@ -3,6 +3,8 @@ import { Button, CTAButton } from "./ui/Button";
 import { Logo } from "./ui/Logo";
 import { streamProbe } from "../lib/streamProbe";
 import { saveReport } from "../lib/storage";
+import { setActiveReport } from "../lib/storage";
+import { findExistingLeadByUrl, type ExistingLead } from "../lib/leadDedup";
 import type { FirmInput, ProbeReport } from "../types";
 import type { ProbeSource } from "../lib/streamProbe";
 
@@ -12,7 +14,7 @@ interface NewAssessmentDialogProps {
   onLoaded: (report: ProbeReport) => void;
 }
 
-type Phase = "form" | "running" | "done" | "error";
+type Phase = "form" | "duplicate" | "running" | "done" | "error";
 
 interface SourceState {
   status: "idle" | "running" | "ok" | "partial" | "failed" | "skipped";
@@ -99,6 +101,8 @@ export function NewAssessmentDialog({ open, onClose, onLoaded }: NewAssessmentDi
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [firm, setFirm] = useState<FirmInput>(BLANK_FIRM);
   const [sources, setSources] = useState<Record<ProbeSource, SourceState>>(BLANK_SOURCES);
+  const [existing, setExisting] = useState<ExistingLead | null>(null);
+  const [checkingDup, setCheckingDup] = useState(false);
   const abortRef = useRef<(() => void) | null>(null);
 
   if (!open) return null;
@@ -108,6 +112,7 @@ export function NewAssessmentDialog({ open, onClose, onLoaded }: NewAssessmentDi
     setErrorMsg(null);
     setSources(BLANK_SOURCES);
     setFirm(BLANK_FIRM);
+    setExisting(null);
   };
 
   const handleClose = () => {
@@ -116,8 +121,28 @@ export function NewAssessmentDialog({ open, onClose, onLoaded }: NewAssessmentDi
     setTimeout(reset, 300);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCheckingDup(true);
+    const match = await findExistingLeadByUrl(firm.url);
+    setCheckingDup(false);
+    if (match) {
+      setExisting(match);
+      setPhase("duplicate");
+      return;
+    }
+    void runProbe();
+  };
+
+  const handleOpenExisting = () => {
+    if (!existing) return;
+    setActiveReport(existing.id);
+    onLoaded(existing.report);
+    onClose();
+    setTimeout(reset, 300);
+  };
+
+  const runProbe = async () => {
     setPhase("running");
     setErrorMsg(null);
     setSources(BLANK_SOURCES);
@@ -194,7 +219,7 @@ export function NewAssessmentDialog({ open, onClose, onLoaded }: NewAssessmentDi
         <div className="p-6">
           {/* FORM */}
           {phase === "form" && (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
               <Field label="Firm Name" required>
                 <input
                   type="text"
@@ -261,10 +286,43 @@ export function NewAssessmentDialog({ open, onClose, onLoaded }: NewAssessmentDi
                 </select>
               </Field>
 
-              <CTAButton type="submit" fullWidth disabled={!isValid} className="mt-2">
-                Run Assessment
+              <CTAButton type="submit" fullWidth disabled={!isValid || checkingDup} className="mt-2">
+                {checkingDup ? "Checking for duplicates…" : "Run Assessment"}
               </CTAButton>
             </form>
+          )}
+
+          {/* DUPLICATE FOUND */}
+          {phase === "duplicate" && existing && (
+            <div className="flex flex-col gap-4">
+              <div className="bg-[#FFF7ED] border border-[#F59E0B]/30 rounded-[8px] p-4">
+                <p className="text-sm font-semibold text-heading mb-1">
+                  ⚠ A lead already exists for this URL
+                </p>
+                <p className="text-xs text-body leading-relaxed">
+                  <span className="font-semibold">{existing.firmName}</span> was opened
+                  by <span className="font-medium">{existing.createdByName ?? "another rep"}</span>
+                  {" "}on{" "}
+                  {new Date(existing.createdAt).toLocaleDateString("en-US", {
+                    month: "short", day: "numeric", year: "numeric",
+                  })}
+                  . Re-running an assessment will create a duplicate with split call
+                  history, brief, and notes.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <CTAButton fullWidth onClick={handleOpenExisting}>
+                  Open existing lead
+                </CTAButton>
+                <Button variant="neutral" fullWidth onClick={() => void runProbe()}>
+                  Run new assessment anyway
+                </Button>
+                <Button variant="neutral" fullWidth onClick={() => setPhase("form")}>
+                  Edit fields
+                </Button>
+              </div>
+            </div>
           )}
 
           {/* RUNNING / DONE */}
@@ -340,12 +398,7 @@ export function NewAssessmentDialog({ open, onClose, onLoaded }: NewAssessmentDi
                 <Button variant="neutral" fullWidth onClick={() => setPhase("form")}>
                   Edit fields
                 </Button>
-                <CTAButton
-                  fullWidth
-                  onClick={() => {
-                    void handleSubmit({ preventDefault: () => {} } as React.FormEvent);
-                  }}
-                >
+                <CTAButton fullWidth onClick={() => void runProbe()}>
                   Retry
                 </CTAButton>
               </div>

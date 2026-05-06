@@ -62,6 +62,18 @@ function llgApi(): PluginOption {
           res.end(JSON.stringify({ error: String(err) }));
         }
       });
+
+      server.middlewares.use("/api/ask", async (req, res, next) => {
+        if (req.method !== "POST") return next();
+        try {
+          const { handleAsk } = await server.ssrLoadModule("/server/ask-handler.ts");
+          await handleAsk(req, res);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error("ask handler crashed:", err);
+          ndjsonError(res, err);
+        }
+      });
     },
   };
 }
