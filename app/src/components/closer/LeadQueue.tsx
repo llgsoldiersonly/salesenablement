@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, CTAButton } from "../ui/Button";
 import { Logo } from "../ui/Logo";
 import { getLeadQueue, type LeadQueueItem, type LeadStatus } from "../../lib/leadQueue";
+import { CallHistory } from "./CallHistory";
 import { setActiveReport } from "../../lib/storage";
 import type { ProbeReport } from "../../types";
+
+type TopView = "queue" | "history";
 
 interface LeadQueueProps {
   currentUserId: string;
@@ -56,6 +59,7 @@ export function LeadQueue({
   onNewAssessment,
   onSignOut,
 }: LeadQueueProps) {
+  const [topView, setTopView] = useState<TopView>("queue");
   const [leads, setLeads] = useState<LeadQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("open");
@@ -108,6 +112,23 @@ export function LeadQueue({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* Top-level view toggle */}
+          <div className="flex rounded-[8px] border border-[var(--color-border)] overflow-hidden">
+            {(["queue", "history"] as TopView[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => setTopView(v)}
+                className={[
+                  "px-3 py-1.5 text-xs font-medium transition-colors",
+                  topView === v
+                    ? "bg-brand text-white"
+                    : "text-subtle hover:text-heading bg-surface",
+                ].join(" ")}
+              >
+                {v === "queue" ? "Lead Queue" : "My Calls"}
+              </button>
+            ))}
+          </div>
           <span className="text-xs text-subtle">{currentUserName}</span>
           <button
             onClick={onSignOut}
@@ -122,81 +143,94 @@ export function LeadQueue({
         {/* Title bar */}
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-heading">Lead Queue</h1>
+            <h1 className="text-xl font-semibold text-heading">
+              {topView === "queue" ? "Lead Queue" : "My Calls"}
+            </h1>
             <p className="text-sm text-subtle mt-0.5">
-              Pick a lead to start a closer call ·{" "}
-              {loading ? "loading…" : `${counts.open} open · ${leads.length} total`}
+              {topView === "queue"
+                ? (loading ? "loading…" : `${counts.open} open · ${leads.length} total`)
+                : "Your call history and performance"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="neutral" size="sm" onClick={() => void reload()} disabled={loading}>
-              {loading ? "…" : "Refresh"}
-            </Button>
-            <Button variant="neutral" size="sm" onClick={onLoadReport}>
-              Load Saved
-            </Button>
-            <CTAButton size="sm" onClick={onNewAssessment}>
-              New Assessment
-            </CTAButton>
-          </div>
+          {topView === "queue" && (
+            <div className="flex items-center gap-2">
+              <Button variant="neutral" size="sm" onClick={() => void reload()} disabled={loading}>
+                {loading ? "…" : "Refresh"}
+              </Button>
+              <Button variant="neutral" size="sm" onClick={onLoadReport}>
+                Load Saved
+              </Button>
+              <CTAButton size="sm" onClick={onNewAssessment}>
+                New Assessment
+              </CTAButton>
+            </div>
+          )}
         </div>
 
-        {/* Filter pills */}
-        <div className="flex gap-2 flex-wrap">
-          {(
-            [
-              ["open", "Open"],
-              ["mine", "My Calls"],
-              ["all", "All"],
-              ["won", "Won"],
-              ["lost", "Lost"],
-            ] as Array<[FilterKey, string]>
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={[
-                "text-xs px-3 py-1.5 rounded-full border font-medium transition-colors",
-                filter === key
-                  ? "bg-brand text-white border-brand"
-                  : "bg-surface text-body border-[var(--color-border)] hover:border-[var(--color-border-strong)]",
-              ].join(" ")}
-            >
-              {label}
-              <span
-                className={[
-                  "ml-1.5 text-2xs tabular-nums",
-                  filter === key ? "text-white/80" : "text-subtle",
-                ].join(" ")}
-              >
-                {counts[key]}
-              </span>
-            </button>
-          ))}
-        </div>
+        {/* History view */}
+        {topView === "history" && (
+          <CallHistory currentUserId={currentUserId} />
+        )}
 
-        {/* List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <p className="text-sm text-subtle animate-pulse">Loading leads…</p>
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="border border-dashed border-[var(--color-border-strong)] rounded-[8px] p-10 text-center bg-surface">
-            <p className="text-sm text-heading font-medium">No leads in this view.</p>
-            <p className="text-xs text-subtle mt-1">
-              {filter === "open"
-                ? "Every assessment has a logged call. Try All or run a new assessment."
-                : filter === "mine"
-                  ? "You haven't logged any calls yet."
-                  : "Try a different filter or run a new assessment."}
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {visible.map((lead) => (
-              <LeadCard key={lead.assessmentId} lead={lead} onOpen={() => handleOpen(lead)} />
-            ))}
-          </div>
+        {/* Queue view — filter pills + lead list */}
+        {topView === "queue" && (
+          <>
+            <div className="flex gap-2 flex-wrap">
+              {(
+                [
+                  ["open", "Open"],
+                  ["mine", "My Calls"],
+                  ["all", "All"],
+                  ["won", "Won"],
+                  ["lost", "Lost"],
+                ] as Array<[FilterKey, string]>
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setFilter(key)}
+                  className={[
+                    "text-xs px-3 py-1.5 rounded-full border font-medium transition-colors",
+                    filter === key
+                      ? "bg-brand text-white border-brand"
+                      : "bg-surface text-body border-[var(--color-border)] hover:border-[var(--color-border-strong)]",
+                  ].join(" ")}
+                >
+                  {label}
+                  <span
+                    className={[
+                      "ml-1.5 text-2xs tabular-nums",
+                      filter === key ? "text-white/80" : "text-subtle",
+                    ].join(" ")}
+                  >
+                    {counts[key]}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <p className="text-sm text-subtle animate-pulse">Loading leads…</p>
+              </div>
+            ) : visible.length === 0 ? (
+              <div className="border border-dashed border-[var(--color-border-strong)] rounded-[8px] p-10 text-center bg-surface">
+                <p className="text-sm text-heading font-medium">No leads in this view.</p>
+                <p className="text-xs text-subtle mt-1">
+                  {filter === "open"
+                    ? "Every assessment has a logged call. Try All or run a new assessment."
+                    : filter === "mine"
+                      ? "You haven't logged any calls yet."
+                      : "Try a different filter or run a new assessment."}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {visible.map((lead) => (
+                  <LeadCard key={lead.assessmentId} lead={lead} onOpen={() => handleOpen(lead)} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
