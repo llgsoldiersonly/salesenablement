@@ -52,6 +52,48 @@ export type Database = {
           },
         ]
       }
+      sales_assessment_notes: {
+        Row: {
+          assessment_id: string
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_assessment_notes_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "sales_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_assessment_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "sales_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_assessments: {
         Row: {
           brief_input_ready: boolean | null
