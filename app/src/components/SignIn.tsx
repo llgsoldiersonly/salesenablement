@@ -29,7 +29,12 @@ const OTP_ERROR_MESSAGES: Record<string, string> = {
   access_denied: "Sign-in was denied. Please request a new link.",
 };
 
-export function SignIn() {
+interface SignInProps {
+  portalName?: string;
+  redirectPath?: string;
+}
+
+export function SignIn({ portalName = "Sales Enablement", redirectPath = "" }: SignInProps) {
   const [email, setEmail] = useState("");
   const [phase, setPhase] = useState<Phase>("form");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -52,9 +57,10 @@ export function SignIn() {
     setPhase("sending");
     setErrorMsg(null);
 
+    const redirectTo = window.location.origin + (redirectPath || "");
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: redirectTo },
     });
 
     if (error) {
@@ -70,7 +76,7 @@ export function SignIn() {
       <div className="w-full max-w-md bg-surface rounded-[8px] shadow-xl border border-[var(--color-border)] p-8">
         <div className="flex flex-col items-center gap-2 mb-8">
           <Logo variant="full" size={64} />
-          <p className="text-xs text-subtle uppercase tracking-wider">Sales Enablement</p>
+          <p className="text-xs text-subtle uppercase tracking-wider">{portalName}</p>
         </div>
 
         {phase === "sent" ? (

@@ -1,46 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
-import { AppShell } from "./components/layout/AppShell";
-import { FirmBriefing } from "./components/mobile/FirmBriefing";
-import { EmptyState } from "./components/EmptyState";
-import { LoadReportDialog } from "./components/LoadReportDialog";
-import { NewAssessmentDialog } from "./components/NewAssessmentDialog";
-import { SignIn } from "./components/SignIn";
-import { AdminApp } from "./components/AdminApp";
-import { CloserApp } from "./components/CloserApp";
-import { Logo } from "./components/ui/Logo";
-import { MOCK_REPORT, MOCK_SESSION } from "./data/mock";
-import { useMediaQuery } from "./hooks/useMediaQuery";
-import { useAuth } from "./lib/auth";
-import { recommendPackage } from "./lib/packages";
-import { getActiveReport, saveReport } from "./lib/storage";
-import { clearHash, readReportFromHash } from "./lib/share";
-import type { ProbeReport } from "./types";
+import { SignIn } from "./SignIn";
+import { AppShell } from "./layout/AppShell";
+import { EmptyState } from "./EmptyState";
+import { LoadReportDialog } from "./LoadReportDialog";
+import { NewAssessmentDialog } from "./NewAssessmentDialog";
+import { Logo } from "./ui/Logo";
+import { MOCK_SESSION } from "../data/mock";
+import { useAuth } from "../lib/auth";
+import { recommendPackage } from "../lib/packages";
+import { getActiveReport, saveReport } from "../lib/storage";
+import { clearHash, readReportFromHash } from "../lib/share";
+import type { ProbeReport } from "../types";
 
-const path = window.location.pathname.replace(/\/$/, "") || "/";
-
-export default function App() {
-  if (path === "/admin") return <AdminApp />;
-  if (path === "/closers") return <CloserApp />;
-  const isMobile = useMediaQuery("(max-width: 767px)");
-  const { session, loading: authLoading } = useAuth();
+export function CloserApp() {
+  const { session, profile, role, loading: authLoading, signOut } = useAuth();
   const [report, setReport] = useState<ProbeReport | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [probeOpen, setProbeOpen] = useState(false);
   const [loadingHash, setLoadingHash] = useState(true);
 
-  // Must stay above all early returns — Rules of Hooks
   const recommendation = useMemo(
     () => (report ? recommendPackage(report) : null),
     [report],
   );
 
-  // On mount (and after sign-in): prefer ?#data= hash share, then fall back
-  // to the user's active assessment in Supabase.
   useEffect(() => {
-    if (authLoading || !session) {
-      setLoadingHash(false);
-      return;
-    }
+    if (authLoading || !session) { setLoadingHash(false); return; }
     let cancelled = false;
     setLoadingHash(true);
     (async () => {
@@ -57,9 +42,7 @@ export default function App() {
       if (!cancelled && active) setReport(active.report);
       if (!cancelled) setLoadingHash(false);
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [authLoading, session]);
 
   if (authLoading) {
@@ -72,18 +55,39 @@ export default function App() {
   }
 
   if (!session) {
-    return <SignIn />;
+    return <SignIn portalName="Closer Portal" redirectPath="/closers" />;
   }
 
-  const handleUseMock = () => {
-    setReport(MOCK_REPORT);
-    setDialogOpen(false);
-  };
-
-  const handleLoaded = (r: ProbeReport) => {
-    setReport(r);
-    setDialogOpen(false);
-  };
+  if (role !== "closer" && role !== "admin") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-surface p-4">
+        <Logo variant="full" size={64} />
+        <div className="text-center max-w-sm">
+          <h2 className="text-lg font-semibold text-heading mt-4">Access Denied</h2>
+          <p className="text-sm text-subtle mt-2">
+            This portal is for closers only.{" "}
+            {profile?.email && (
+              <>
+                You're signed in as{" "}
+                <span className="font-medium text-body">{profile.email}</span> ({role ?? "no role"}).
+              </>
+            )}
+          </p>
+          <div className="flex gap-4 justify-center mt-4">
+            <a href="/" className="text-sm text-brand hover:underline">
+              Go to Rep Portal
+            </a>
+            <button
+              onClick={() => void signOut()}
+              className="text-sm text-subtle hover:underline"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loadingHash) {
     return (
@@ -94,15 +98,9 @@ export default function App() {
     );
   }
 
+  const handleLoaded = (r: ProbeReport) => { setReport(r); setDialogOpen(false); };
+
   if (!report) {
-    if (isMobile) {
-      return (
-        <FirmBriefing
-          report={MOCK_REPORT}
-          recommendation={recommendPackage(MOCK_REPORT)}
-        />
-      );
-    }
     return (
       <>
         <EmptyState
@@ -113,7 +111,7 @@ export default function App() {
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
           onLoaded={handleLoaded}
-          onUseMock={handleUseMock}
+          onUseMock={() => { setDialogOpen(false); }}
         />
         <NewAssessmentDialog
           open={probeOpen}
@@ -122,10 +120,6 @@ export default function App() {
         />
       </>
     );
-  }
-
-  if (isMobile) {
-    return <FirmBriefing report={report} recommendation={recommendation!} />;
   }
 
   return (
@@ -141,7 +135,7 @@ export default function App() {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onLoaded={handleLoaded}
-        onUseMock={handleUseMock}
+        onUseMock={() => { setDialogOpen(false); }}
       />
       <NewAssessmentDialog
         open={probeOpen}
