@@ -599,7 +599,6 @@ function InvitationsPanel() {
           </p>
         </div>
       )}
-      )}
 
       {!loading && pending.length > 0 && (
         <div>
