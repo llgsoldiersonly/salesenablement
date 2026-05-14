@@ -9,7 +9,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="LLGVideo"
         component={LLGVideo}
-        durationInFrames={2460}
+        durationInFrames={2640}
         fps={30}
         width={1920}
         height={1080}
@@ -18,7 +18,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="LLGVideoVertical"
         component={LLGVideo}
-        durationInFrames={2460}
+        durationInFrames={2640}
         fps={30}
         width={1080}
         height={1920}

@@ -16,6 +16,7 @@ import { Scene12BuyingLanguage } from './scenes/Scene12BuyingLanguage';
 import { Scene13Steps567 } from './scenes/Scene13Steps567';
 import { Scene14ThirtyDays } from './scenes/Scene14ThirtyDays';
 import { Scene15NowGoPost } from './scenes/Scene15NowGoPost';
+import { Scene16EngagementCTA } from './scenes/Scene16EngagementCTA';
 import { Scene16Outro } from './scenes/Scene16Outro';
 
 // Timing table (all values in frames at 30fps)
@@ -35,8 +36,9 @@ import { Scene16Outro } from './scenes/Scene16Outro';
 // 13    |  1830 | 180  (6s)  — Steps 5-7
 // 14    |  2010 | 150  (5s)  — 30 Days
 // 15    |  2160 | 150  (5s)  — NOW GO POST
-// 16    |  2310 | 150  (5s)  — Outro
-// Total: 2460 frames = 82 seconds
+// 16    |  2310 | 180  (6s)  — Engagement CTA ("Follow + Comment LEADS")
+// 17    |  2490 | 150  (5s)  — Outro
+// Total: 2640 frames = 88 seconds
 
 export const LLGVideo: React.FC = () => {
   return (
@@ -56,7 +58,8 @@ export const LLGVideo: React.FC = () => {
       <Sequence from={1830} durationInFrames={180}><Scene13Steps567 /></Sequence>
       <Sequence from={2010} durationInFrames={150}><Scene14ThirtyDays /></Sequence>
       <Sequence from={2160} durationInFrames={150}><Scene15NowGoPost /></Sequence>
-      <Sequence from={2310} durationInFrames={150}><Scene16Outro /></Sequence>
+      <Sequence from={2310} durationInFrames={180}><Scene16EngagementCTA /></Sequence>
+      <Sequence from={2490} durationInFrames={150}><Scene16Outro /></Sequence>
     </AbsoluteFill>
   );
 };
