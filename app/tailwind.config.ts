@@ -17,15 +17,16 @@ export default {
         border: "var(--color-border)",
       },
       boxShadow: {
-        // Neumorphic elevation tokens — dual-directional (dark bottom-right, light top-left)
-        "2xs": "1px 1px 2px #b8b9be, -1px -1px 2px #ffffff",
-        xs: "2px 2px 4px #b8b9be, -2px -2px 4px #ffffff",
-        sm: "3px 3px 6px #b8b9be, -3px -3px 6px #ffffff",
-        md: "6px 6px 12px #b8b9be, -6px -6px 12px #ffffff",
-        lg: "8px 8px 16px #b8b9be, -8px -8px 16px #ffffff",
-        xl: "10px 10px 20px #b8b9be, -10px -10px 20px #ffffff",
-        "2xl": "12px 12px 24px #b8b9be, -12px -12px 24px #ffffff",
-        inset: "inset 2px 2px 5px #b8b9be, inset -3px -3px 7px #ffffff",
+        // Neumorphic elevation tokens — dual-directional (dark bottom-right, light top-left).
+        // Colors come from CSS vars in globals.css so light/dark themes swap automatically.
+        "2xs": "1px 1px 2px var(--nm-shadow-dark), -1px -1px 2px var(--nm-shadow-light)",
+        xs: "2px 2px 4px var(--nm-shadow-dark), -2px -2px 4px var(--nm-shadow-light)",
+        sm: "3px 3px 6px var(--nm-shadow-dark), -3px -3px 6px var(--nm-shadow-light)",
+        md: "6px 6px 12px var(--nm-shadow-dark), -6px -6px 12px var(--nm-shadow-light)",
+        lg: "8px 8px 16px var(--nm-shadow-dark), -8px -8px 16px var(--nm-shadow-light)",
+        xl: "10px 10px 20px var(--nm-shadow-dark), -10px -10px 20px var(--nm-shadow-light)",
+        "2xl": "12px 12px 24px var(--nm-shadow-dark), -12px -12px 24px var(--nm-shadow-light)",
+        inset: "inset 2px 2px 5px var(--nm-shadow-dark), inset -3px -3px 7px var(--nm-shadow-light)",
       },
       borderRadius: {
         sm: "2px",

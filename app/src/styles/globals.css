@@ -4,7 +4,9 @@
 
 /* ── LLG Design Tokens ──────────────────────────────────────────────────── */
 
-:root {
+/* Light theme (default) */
+:root,
+:root[data-theme="light"] {
   /* Surface — the single neumorphic background. Every element uses this. */
   --color-surface: #ecf0f3;
 
@@ -26,10 +28,33 @@
   --color-success: #16a34a;
   --color-danger: #dc2626;
   --color-warning: #d97706;
+
+  /* Neumorphic shadow colors — pair of darker/lighter than surface.
+     Defined as vars so the dark theme can swap them without touching utilities. */
+  --nm-shadow-dark: #b8b9be;
+  --nm-shadow-light: #ffffff;
 }
 
+/* Dark theme */
+:root[data-theme="dark"] {
+  --color-surface: #262833;
+  --color-heading: #ecf0f3;
+  --color-body: #b8bfc9;
+  --color-body-subtle: #93a5be;
+  --color-brand: #f05a28;
+  --color-secondary: #c9a678;
+  --color-disabled: #5a5a5a;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Dark neumorphic shadows: darker below-right, subtle highlight above-left */
+  --nm-shadow-dark: #1c1e26;
+  --nm-shadow-light: #303340;
+}
+
+/* Follow OS preference when no explicit theme is set */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --color-surface: #262833;
     --color-heading: #ecf0f3;
     --color-body: #b8bfc9;
@@ -39,6 +64,8 @@
     --color-disabled: #5a5a5a;
     --color-border: rgba(255, 255, 255, 0.08);
     --color-border-strong: rgba(255, 255, 255, 0.16);
+    --nm-shadow-dark: #1c1e26;
+    --nm-shadow-light: #303340;
   }
 }
 
@@ -69,13 +96,13 @@ body {
 
 @layer utilities {
   /* Neumorphic raised states */
-  .nm-sm   { box-shadow: 3px 3px 6px #b8b9be, -3px -3px 6px #ffffff; }
-  .nm-md   { box-shadow: 6px 6px 12px #b8b9be, -6px -6px 12px #ffffff; }
-  .nm-lg   { box-shadow: 8px 8px 16px #b8b9be, -8px -8px 16px #ffffff; }
-  .nm-inset { box-shadow: inset 2px 2px 5px #b8b9be, inset -3px -3px 7px #ffffff; }
+  .nm-sm   { box-shadow: 3px 3px 6px var(--nm-shadow-dark), -3px -3px 6px var(--nm-shadow-light); }
+  .nm-md   { box-shadow: 6px 6px 12px var(--nm-shadow-dark), -6px -6px 12px var(--nm-shadow-light); }
+  .nm-lg   { box-shadow: 8px 8px 16px var(--nm-shadow-dark), -8px -8px 16px var(--nm-shadow-light); }
+  .nm-inset { box-shadow: inset 2px 2px 5px var(--nm-shadow-dark), inset -3px -3px 7px var(--nm-shadow-light); }
 
   /* Active pressed state (matches sidebar + button active) */
-  .nm-pressed { box-shadow: inset 2px 2px 5px #b8b9be, inset -3px -3px 7px #ffffff; }
+  .nm-pressed { box-shadow: inset 2px 2px 5px var(--nm-shadow-dark), inset -3px -3px 7px var(--nm-shadow-light); }
 
   /* Brand accent left border (opener notes card) */
   .border-l-brand { border-left: 3px solid var(--color-brand); }
@@ -112,7 +139,7 @@ body {
 }
 .prose-llg code {
   background: var(--color-surface);
-  box-shadow: inset 1px 1px 2px #b8b9be, inset -1px -1px 2px #fff;
+  box-shadow: inset 1px 1px 2px var(--nm-shadow-dark), inset -1px -1px 2px var(--nm-shadow-light);
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 12px;

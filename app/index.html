@@ -14,6 +14,18 @@
     />
   </head>
   <body>
+    <script>
+      // Apply persisted theme before React mounts to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          var stored = localStorage.getItem("llg-theme");
+          if (stored === "light" || stored === "dark") {
+            document.documentElement.setAttribute("data-theme", stored);
+            document.documentElement.style.colorScheme = stored;
+          }
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

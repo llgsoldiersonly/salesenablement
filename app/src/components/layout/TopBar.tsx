@@ -5,6 +5,7 @@ import { Logo } from "../ui/Logo";
 import { ShareButton } from "../ShareButton";
 import { NotificationBell } from "../NotificationBell";
 import { useAuth } from "../../lib/auth";
+import { useTheme } from "../../lib/theme";
 import type { ProbeReport, TabId } from "../../types";
 
 // Opener: simplified prospecting tools only — no calculator or activity log
@@ -37,6 +38,7 @@ interface TopBarProps {
 
 export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoadReport, report, onOpenSidebar }: TopBarProps) {
   const { profile, role, signOut } = useAuth();
+  const { resolvedTheme, toggle: toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const tabs = role === "opener" ? OPENER_TABS : CLOSER_TABS;
   const initials = (profile?.full_name ?? profile?.email ?? "?")
@@ -83,6 +85,14 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
             📁
           </button>
           {report && <span className="hidden sm:inline-flex"><ShareButton report={report} variant="icon" /></span>}
+          <button
+            onClick={toggleTheme}
+            aria-label={resolvedTheme === "dark" ? "switch to light theme" : "switch to dark theme"}
+            title={resolvedTheme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            className="w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 flex items-center justify-center text-subtle text-sm"
+          >
+            {resolvedTheme === "dark" ? "☀" : "☾"}
+          </button>
           <NotificationBell />
           <button
             aria-label="history"
