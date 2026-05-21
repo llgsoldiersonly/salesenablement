@@ -10,6 +10,9 @@ const AdminApp = lazy(() =>
 const CloserApp = lazy(() =>
   import("./components/CloserApp").then((m) => ({ default: m.CloserApp })),
 );
+const LeadsApp = lazy(() =>
+  import("./components/LeadsApp").then((m) => ({ default: m.LeadsApp })),
+);
 
 function PortalLoading() {
   return (
@@ -21,7 +24,14 @@ function PortalLoading() {
 }
 
 export default function App() {
-  const Portal = path === "/admin" ? AdminApp : path === "/closers" ? CloserApp : RepApp;
+  const Portal =
+    path === "/admin"
+      ? AdminApp
+      : path === "/closers"
+        ? CloserApp
+        : path === "/leads"
+          ? LeadsApp
+          : RepApp;
   return (
     <Suspense fallback={<PortalLoading />}>
       <Portal />

@@ -85,6 +85,14 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
             📁
           </button>
           {report && <span className="hidden sm:inline-flex"><ShareButton report={report} variant="icon" /></span>}
+          <a
+            href="/leads"
+            aria-label="leads portal"
+            title="Leads"
+            className="hidden sm:flex w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md transition-all duration-200 items-center justify-center text-subtle text-sm"
+          >
+            ◰
+          </a>
           <button
             onClick={toggleTheme}
             aria-label={resolvedTheme === "dark" ? "switch to light theme" : "switch to dark theme"}
