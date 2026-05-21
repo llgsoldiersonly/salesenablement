@@ -65,6 +65,12 @@ export function AdminApp() {
           >
             → Rep Dashboard
           </a>
+          <a
+            href="/leads"
+            className="text-xs text-subtle hover:text-body transition-colors"
+          >
+            → Leads
+          </a>
           <div className="h-4 w-px bg-[var(--color-border)]" />
           <span className="text-xs text-subtle">
             {profile?.full_name ?? profile?.email}
