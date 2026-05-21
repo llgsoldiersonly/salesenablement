@@ -87,11 +87,12 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
           {report && <span className="hidden sm:inline-flex"><ShareButton report={report} variant="icon" /></span>}
           <a
             href="/leads"
-            aria-label="leads portal"
-            title="Leads"
-            className="hidden sm:flex w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md transition-all duration-200 items-center justify-center text-subtle text-sm"
+            aria-label="open leads portal"
+            title="Open Leads Portal"
+            className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 text-xs font-semibold uppercase tracking-wide text-brand whitespace-nowrap"
           >
-            ◰
+            <span aria-hidden>◰</span>
+            <span>Leads</span>
           </a>
           <button
             onClick={toggleTheme}
