@@ -62,6 +62,8 @@ export interface Lead {
   status_changed_at: string;
   first_interest_at: string | null;
   lost_at: string | null;
+  ready_for_closer: boolean;
+  ready_for_closer_at: string | null;
   priority: number;
   pinned: boolean;
   tags: string[];
@@ -175,6 +177,40 @@ export async function getLeadByAssessment(
     .maybeSingle();
   if (error || !data) return null;
   return flatten(data as unknown as LeadJoinRow);
+}
+
+/**
+ * Toggle the persistent "ready for closer" flag. Fires a sales_activity row
+ * for audit so admins can see who marked what when.
+ *
+ * For the transient "live flip in progress" signal (call event-driven),
+ * see the Option B webhook integration roadmap.
+ */
+export async function setReadyForCloser(
+  leadId: string,
+  ready: boolean,
+): Promise<Lead | null> {
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id ?? null;
+  const { data, error } = await supabase
+    .from("sales_leads" as never)
+    .update({ ready_for_closer: ready, updated_by: userId } as never)
+    .eq("id", leadId)
+    .select("*")
+    .single();
+  if (error || !data) {
+    console.error("setReadyForCloser failed:", error?.message);
+    return null;
+  }
+  if (userId) {
+    void supabase.from("sales_activity").insert({
+      actor_id: userId,
+      action: ready ? "lead.marked_ready_for_closer" : "lead.unmarked_ready_for_closer",
+      target_id: leadId,
+      target_type: "lead",
+    });
+  }
+  return data as unknown as Lead;
 }
 
 export async function updateLeadStatus(

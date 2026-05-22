@@ -4,6 +4,7 @@ import {
   LEAD_STATUS_LABEL,
   LEAD_STATUS_ORDER,
   listLeads,
+  setReadyForCloser,
   updateLead,
   updateLeadStatus,
   updateAssessmentContact,
@@ -36,7 +37,7 @@ export function LeadsApp() {
   const [leads, setLeads] = useState<LeadWithAssessment[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<LeadStatus | "all" | "ready_for_closer">("all");
   const [activeLead, setActiveLead] = useState<LeadWithAssessment | null>(null);
 
   // Load leads
@@ -64,10 +65,17 @@ export function LeadsApp() {
     return counts;
   }, [leads]);
 
+  // Count of leads currently flagged ready-for-closer (across all statuses)
+  const readyCount = useMemo(() => leads.filter((l) => l.ready_for_closer).length, [leads]);
+
   // Derived: filtered list
   const filtered = useMemo(() => {
     return leads.filter((l) => {
-      if (statusFilter !== "all" && l.status !== statusFilter) return false;
+      if (statusFilter === "ready_for_closer") {
+        if (!l.ready_for_closer) return false;
+      } else if (statusFilter !== "all" && l.status !== statusFilter) {
+        return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         const haystack = [
@@ -101,6 +109,33 @@ export function LeadsApp() {
       }
       const result = await updateLeadStatus(leadId, status);
       if (!result) await refresh();
+    },
+    [activeLead, refresh],
+  );
+
+  const handleToggleReadyForCloser = useCallback(
+    async (next: boolean): Promise<boolean> => {
+      if (!activeLead) return false;
+      const leadId = activeLead.id;
+      const now = new Date().toISOString();
+      setLeads((prev) =>
+        prev.map((l) =>
+          l.id === leadId
+            ? { ...l, ready_for_closer: next, ready_for_closer_at: next ? now : null }
+            : l,
+        ),
+      );
+      setActiveLead({
+        ...activeLead,
+        ready_for_closer: next,
+        ready_for_closer_at: next ? now : null,
+      });
+      const result = await setReadyForCloser(leadId, next);
+      if (!result) {
+        await refresh();
+        return false;
+      }
+      return true;
     },
     [activeLead, refresh],
   );
@@ -278,6 +313,12 @@ export function LeadsApp() {
             active={statusFilter === "all"}
             onClick={() => setStatusFilter("all")}
           />
+          <FlipReadyChip
+            count={readyCount}
+            active={statusFilter === "ready_for_closer"}
+            onClick={() => setStatusFilter("ready_for_closer")}
+          />
+          <span className="mx-1 h-5 w-px bg-[var(--color-border-default)] shrink-0" aria-hidden />
           {LEAD_STATUS_ORDER.map((s) => (
             <StageChip
               key={s}
@@ -328,9 +369,38 @@ export function LeadsApp() {
           onTogglePin={(next) => handleTogglePin(activeLead.id, next)}
           onPatchLead={handlePatchLead}
           onPatchAssessmentContact={handlePatchAssessmentContact}
+          onToggleReadyForCloser={handleToggleReadyForCloser}
         />
       )}
     </div>
+  );
+}
+
+interface FlipReadyChipProps {
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}
+
+function FlipReadyChip({ count, active, onClick }: FlipReadyChipProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={[
+        "shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+        "ring-1 ring-inset",
+        active
+          ? "bg-brand text-white ring-brand shadow-sm"
+          : count > 0
+            ? "bg-brand-softer text-fg-brand-strong ring-[var(--color-border-brand-subtle)] hover:bg-brand-soft"
+            : "bg-neutral-secondary-medium text-body-subtle ring-[var(--color-border-default)] hover:text-heading",
+      ].join(" ")}
+      title="Leads marked Ready for Closer (any pipeline stage)"
+    >
+      <span aria-hidden>🚩</span>
+      <span>Flip Ready</span>
+      <span className={active ? "opacity-80" : ""}>{count}</span>
+    </button>
   );
 }
 

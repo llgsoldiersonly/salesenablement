@@ -138,7 +138,12 @@ export function LeadsTableView({ leads, onOpenLead, onStatusChange, onTogglePin 
                 </Td>
                 <Td className="sticky left-10 bg-neutral-primary-soft group-hover:bg-neutral-secondary-soft transition-colors font-medium text-heading">
                   <div className="flex flex-col">
-                    <span className="truncate max-w-[200px]">{leadDisplayName(lead)}</span>
+                    <span className="truncate max-w-[220px]">
+                      {lead.ready_for_closer && (
+                        <span className="mr-1" title="Ready for closer pickup">🚩</span>
+                      )}
+                      {leadDisplayName(lead)}
+                    </span>
                     {lead.firm_url && (
                       <span className="text-2xs text-subtle truncate max-w-[200px]">
                         {lead.firm_url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
