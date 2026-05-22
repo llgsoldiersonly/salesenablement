@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button, CTAButton } from "./ui/Button";
-import { supabase } from "../lib/supabase";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "./ui/Modal";
+import { inputClass } from "./ui/Input";
+import { supabase } from "./../lib/supabase";
 
 interface CalendarSyncDialogProps {
   open: boolean;
@@ -38,11 +40,7 @@ export function CalendarSyncDialog({ open, onClose }: CalendarSyncDialogProps) {
     };
   }, [open]);
 
-  if (!open) return null;
-
-  const url = token
-    ? `${window.location.origin}/api/calendar/${token}.ics`
-    : null;
+  const url = token ? `${window.location.origin}/api/calendar/${token}.ics` : null;
 
   const copy = async () => {
     if (!url) return;
@@ -61,88 +59,72 @@ export function CalendarSyncDialog({ open, onClose }: CalendarSyncDialogProps) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" aria-hidden />
-      <div
-        className="relative w-full max-w-lg bg-surface rounded-[12px] shadow-2xl border border-[var(--color-border)] p-6"
-        onClick={(e) => e.stopPropagation()}
+    <Modal open={open} onClose={onClose} size="md" ariaLabel="Calendar Sync">
+      <ModalHeader
+        onClose={onClose}
+        subtitle="Subscribe from Outlook, Google, or Apple Calendar. New follow-ups and callbacks appear automatically — no app to install."
       >
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-heading">Calendar Sync</h2>
-          <p className="text-xs text-subtle mt-1">
-            Subscribe from Outlook, Google, or Apple Calendar. New follow-ups and
-            callbacks will appear automatically — no app to install.
-          </p>
-        </div>
+        Calendar Sync
+      </ModalHeader>
 
+      <ModalBody>
         {loading ? (
-          <p className="text-sm text-subtle animate-pulse">Loading…</p>
+          <p className="text-sm text-body-subtle animate-pulse">Loading…</p>
         ) : !url ? (
-          <p className="text-sm text-[var(--color-danger)]">
-            Could not load your calendar URL.
-          </p>
+          <p className="text-sm text-fg-danger">Could not load your calendar URL.</p>
         ) : (
-          <>
-            <div className="flex items-center gap-2 mb-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={url}
                 readOnly
                 onFocus={(e) => e.currentTarget.select()}
-                className="flex-1 bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-2 text-xs text-body font-mono outline-none"
+                className={`${inputClass} text-xs font-mono`}
               />
               <Button variant="neutral" size="sm" onClick={() => void copy()}>
                 {copied ? "Copied!" : "Copy"}
               </Button>
             </div>
 
-            <div className="bg-surface rounded-[8px] border border-[var(--color-border)] p-3 mb-4">
+            <div className="bg-neutral-secondary-soft rounded-[8px] border border-[var(--color-border-default)] p-3">
               <h3 className="text-2xs uppercase tracking-wider font-semibold text-heading mb-2">
                 How to subscribe
               </h3>
-              <ul className="text-xs text-body leading-relaxed flex flex-col gap-1">
+              <ul className="text-xs text-body leading-relaxed flex flex-col gap-1.5">
                 <li>
-                  <strong>Outlook (web):</strong> Calendar → Add calendar → Subscribe
-                  from web → paste URL.
+                  <strong className="text-heading">Outlook (web):</strong> Calendar → Add calendar → Subscribe from web → paste URL.
                 </li>
                 <li>
-                  <strong>Outlook (desktop):</strong> File → Account Settings →
-                  Internet Calendars → New → paste URL.
+                  <strong className="text-heading">Outlook (desktop):</strong> File → Account Settings → Internet Calendars → New → paste URL.
                 </li>
                 <li>
-                  <strong>Google Calendar:</strong> Other calendars → + → From URL →
-                  paste URL.
+                  <strong className="text-heading">Google Calendar:</strong> Other calendars → + → From URL → paste URL.
                 </li>
                 <li>
-                  <strong>Apple Calendar:</strong> File → New Calendar Subscription →
-                  paste URL.
+                  <strong className="text-heading">Apple Calendar:</strong> File → New Calendar Subscription → paste URL.
                 </li>
               </ul>
             </div>
 
-            <p className="text-2xs text-subtle leading-relaxed">
-              Anyone with this URL can read your follow-up schedule. Treat it like a
-              password — if it's ever exposed, regenerate it below.
+            <p className="text-2xs text-body-subtle leading-relaxed">
+              Anyone with this URL can read your follow-up schedule. Treat it like a password — if it's
+              ever exposed, regenerate it below.
             </p>
-
-            <div className="flex justify-between items-center mt-4">
-              <button
-                onClick={() => void regenerate()}
-                disabled={regenerating}
-                className="text-2xs uppercase tracking-wider font-semibold text-subtle hover:text-[var(--color-danger)] disabled:opacity-50"
-              >
-                {regenerating ? "Generating…" : "Regenerate URL"}
-              </button>
-              <CTAButton size="sm" onClick={onClose}>
-                Done
-              </CTAButton>
-            </div>
-          </>
+          </div>
         )}
-      </div>
-    </div>
+      </ModalBody>
+
+      <ModalFooter className="justify-between">
+        <button
+          onClick={() => void regenerate()}
+          disabled={regenerating || loading || !url}
+          className="text-2xs uppercase tracking-wider font-semibold text-body-subtle hover:text-fg-danger disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {regenerating ? "Generating…" : "Regenerate URL"}
+        </button>
+        <CTAButton size="sm" onClick={onClose}>Done</CTAButton>
+      </ModalFooter>
+    </Modal>
   );
 }
