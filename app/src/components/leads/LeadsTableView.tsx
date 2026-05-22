@@ -78,16 +78,17 @@ export function LeadsTableView({ leads, onOpenLead, onStatusChange, onTogglePin 
   }
 
   return (
-    <div className="flex-1 overflow-auto scrollbar-thin">
+    <div className="flex-1 overflow-hidden p-3 sm:p-4">
+      <div className="h-full overflow-auto scrollbar-thin rounded-[8px] border border-[var(--color-border-default)] bg-neutral-primary-soft shadow-xs">
       <table className="w-full text-sm border-separate border-spacing-0">
-        <thead className="sticky top-0 z-10 bg-surface">
-          <tr className="text-left text-2xs uppercase tracking-wider text-subtle">
-            <Th className="w-8 sticky left-0 z-20 bg-surface"></Th>
+        <thead className="sticky top-0 z-10 bg-neutral-secondary-soft">
+          <tr className="text-left text-2xs uppercase tracking-wider text-body font-medium">
+            <Th className="w-10 sticky left-0 z-20 bg-neutral-secondary-soft"></Th>
             <Th
               onClick={() => toggleSort("firm")}
               active={sortKey === "firm"}
               dir={sortDir}
-              className="sticky left-8 z-20 bg-surface min-w-[200px]"
+              className="sticky left-10 z-20 bg-neutral-secondary-soft min-w-[200px]"
             >
               Firm
             </Th>
@@ -120,9 +121,9 @@ export function LeadsTableView({ leads, onOpenLead, onStatusChange, onTogglePin 
               <tr
                 key={lead.id}
                 onClick={() => onOpenLead(lead)}
-                className="cursor-pointer hover:bg-[var(--color-border)]/30 transition-colors"
+                className="group cursor-pointer hover:bg-neutral-secondary-soft transition-colors"
               >
-                <Td className="w-8 sticky left-0 bg-surface">
+                <Td className="w-10 sticky left-0 bg-neutral-primary-soft group-hover:bg-neutral-secondary-soft transition-colors">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -135,7 +136,7 @@ export function LeadsTableView({ leads, onOpenLead, onStatusChange, onTogglePin 
                     {lead.pinned ? "★" : "☆"}
                   </button>
                 </Td>
-                <Td className="sticky left-8 bg-surface font-medium text-heading">
+                <Td className="sticky left-10 bg-neutral-primary-soft group-hover:bg-neutral-secondary-soft transition-colors font-medium text-heading">
                   <div className="flex flex-col">
                     <span className="truncate max-w-[200px]">{leadDisplayName(lead)}</span>
                     {lead.firm_url && (
@@ -174,6 +175,7 @@ export function LeadsTableView({ leads, onOpenLead, onStatusChange, onTogglePin 
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -192,7 +194,7 @@ function Th({ children, className = "", onClick, active, dir }: ThProps) {
     <th
       onClick={onClick}
       className={[
-        "py-2 px-3 border-b border-[var(--color-border)] font-medium whitespace-nowrap",
+        "px-4 py-3 border-b border-[var(--color-border-default)] font-medium whitespace-nowrap",
         sortable ? "cursor-pointer select-none hover:text-heading" : "",
         active ? "text-brand" : "",
         className,
@@ -212,7 +214,10 @@ interface TdProps {
 
 function Td({ children, className = "", onClick }: TdProps) {
   return (
-    <td onClick={onClick} className={["py-2 px-3 border-b border-[var(--color-border)]/40 align-middle", className].join(" ")}>
+    <td
+      onClick={onClick}
+      className={["px-4 py-3 border-b border-[var(--color-border-default)] align-middle", className].join(" ")}
+    >
       {children}
     </td>
   );
