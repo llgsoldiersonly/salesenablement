@@ -227,6 +227,32 @@ export interface LeadStatusHistoryRow {
   reason: string | null;
 }
 
+export interface AssessmentContactPatch {
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  contact_role?: string | null;
+}
+
+/**
+ * Update contact fields that live on the underlying assessment (not the lead).
+ * The lead view inherits these via the JOIN in listLeads().
+ */
+export async function updateAssessmentContact(
+  assessmentId: string,
+  patch: AssessmentContactPatch,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("sales_assessments")
+    .update(patch)
+    .eq("id", assessmentId);
+  if (error) {
+    console.error("updateAssessmentContact failed:", error.message);
+    return false;
+  }
+  return true;
+}
+
 export async function getLeadStatusHistory(
   leadId: string,
 ): Promise<LeadStatusHistoryRow[]> {
