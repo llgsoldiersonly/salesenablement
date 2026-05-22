@@ -1,42 +1,100 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Tailwind theme — maps utility classes onto the CSS custom properties
+ * defined in src/styles/globals.css. Never put raw hex values here; let
+ * the design tokens flow through so light/dark themes and brand changes
+ * work without touching this file.
+ */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // All token names map to CSS custom properties defined in globals.css.
-        // Never use raw hex here — the CSS vars handle light/dark automatically.
-        surface: "var(--color-surface)",
-        heading: "var(--color-heading)",
-        body: "var(--color-body)",
-        subtle: "var(--color-body-subtle)",
-        brand: "var(--color-brand)",
-        secondary: "var(--color-secondary)",
-        disabled: "var(--color-disabled)",
-        border: "var(--color-border)",
+        // Backwards-compat / common semantic aliases used across the app
+        surface:  "var(--color-neutral-primary-soft)",
+        heading:  "var(--color-heading)",
+        body:     "var(--color-body)",
+        subtle:   "var(--color-body-subtle)",
+        brand:    "var(--color-brand)",
+        secondary: "var(--color-body-subtle)",
+        disabled: "var(--color-fg-disabled)",
+        border:   "var(--color-border-default)",
+
+        // Design-system tokens, exposed as Tailwind colors
+        // Use these for new components.
+        "neutral-primary-soft":     "var(--color-neutral-primary-soft)",
+        "neutral-primary":          "var(--color-neutral-primary)",
+        "neutral-primary-medium":   "var(--color-neutral-primary-medium)",
+        "neutral-secondary-soft":   "var(--color-neutral-secondary-soft)",
+        "neutral-secondary":        "var(--color-neutral-secondary)",
+        "neutral-secondary-medium": "var(--color-neutral-secondary-medium)",
+        "neutral-tertiary-soft":    "var(--color-neutral-tertiary-soft)",
+        "neutral-tertiary":         "var(--color-neutral-tertiary)",
+        "neutral-tertiary-medium":  "var(--color-neutral-tertiary-medium)",
+        "neutral-quaternary":       "var(--color-neutral-quaternary)",
+
+        "brand-softer":  "var(--color-brand-softer)",
+        "brand-soft":    "var(--color-brand-soft)",
+        "brand-medium":  "var(--color-brand-medium)",
+        "brand-strong":  "var(--color-brand-strong)",
+
+        "success-soft":   "var(--color-success-soft)",
+        success:          "var(--color-success)",
+        "success-medium": "var(--color-success-medium)",
+        "success-strong": "var(--color-success-strong)",
+        "danger-soft":    "var(--color-danger-soft)",
+        danger:           "var(--color-danger)",
+        "danger-medium":  "var(--color-danger-medium)",
+        "danger-strong":  "var(--color-danger-strong)",
+        "warning-soft":   "var(--color-warning-soft)",
+        warning:          "var(--color-warning)",
+        "warning-medium": "var(--color-warning-medium)",
+        "warning-strong": "var(--color-warning-strong)",
+
+        "fg-brand":          "var(--color-fg-brand)",
+        "fg-brand-strong":   "var(--color-fg-brand-strong)",
+        "fg-success":        "var(--color-fg-success)",
+        "fg-success-strong": "var(--color-fg-success-strong)",
+        "fg-danger":         "var(--color-fg-danger)",
+        "fg-danger-strong":  "var(--color-fg-danger-strong)",
+        "fg-warning":        "var(--color-fg-warning)",
+        "fg-disabled":       "var(--color-fg-disabled)",
       },
       boxShadow: {
-        // Neumorphic elevation tokens — dual-directional (dark bottom-right, light top-left).
-        // Colors come from CSS vars in globals.css so light/dark themes swap automatically.
-        "2xs": "1px 1px 2px var(--nm-shadow-dark), -1px -1px 2px var(--nm-shadow-light)",
-        xs: "2px 2px 4px var(--nm-shadow-dark), -2px -2px 4px var(--nm-shadow-light)",
-        sm: "3px 3px 6px var(--nm-shadow-dark), -3px -3px 6px var(--nm-shadow-light)",
-        md: "6px 6px 12px var(--nm-shadow-dark), -6px -6px 12px var(--nm-shadow-light)",
-        lg: "8px 8px 16px var(--nm-shadow-dark), -8px -8px 16px var(--nm-shadow-light)",
-        xl: "10px 10px 20px var(--nm-shadow-dark), -10px -10px 20px var(--nm-shadow-light)",
-        "2xl": "12px 12px 24px var(--nm-shadow-dark), -12px -12px 24px var(--nm-shadow-light)",
-        inset: "inset 2px 2px 5px var(--nm-shadow-dark), inset -3px -3px 7px var(--nm-shadow-light)",
+        // Modern elevation scale (per shadows.md). Values resolve through
+        // CSS variables so they can be retuned per-theme later if needed.
+        "2xs":  "var(--shadow-2xs)",
+        xs:     "var(--shadow-xs)",
+        sm:     "var(--shadow-sm)",
+        md:     "var(--shadow-md)",
+        lg:     "var(--shadow-lg)",
+        xl:     "var(--shadow-xl)",
+        "2xl":  "var(--shadow-2xl)",
+        inset:  "var(--shadow-inset)",
       },
       borderRadius: {
-        sm: "2px",
+        sm:      "4px",
         DEFAULT: "8px",
-        base: "8px",
-        default: "6px",
-        full: "9999px",
+        base:    "8px",
+        default: "8px",
+        full:    "9999px",
       },
       fontFamily: {
-        sans: ['"Nunito Sans"', "sans-serif"],
+        sans: [
+          "Inter",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"Segoe UI"',
+          "Roboto",
+          "sans-serif",
+        ],
+        mono: [
+          '"SF Mono"',
+          '"Fira Code"',
+          '"Cascadia Code"',
+          "monospace",
+        ],
       },
       fontSize: {
         "2xs": ["11px", "1.4"],
@@ -44,6 +102,10 @@ export default {
       width: {
         sidebar: "256px",
         "right-rail": "288px",
+      },
+      ringColor: {
+        brand:        "var(--color-brand)",
+        "brand-soft": "var(--color-brand-soft)",
       },
     },
   },
