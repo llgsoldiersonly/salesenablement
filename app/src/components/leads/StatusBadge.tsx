@@ -1,5 +1,13 @@
 import { LEAD_STATUS_LABEL, LEAD_STATUS_ORDER, type LeadStatus } from "../../lib/leads";
 
+/**
+ * Lead-status pill + inline status dropdown.
+ *
+ * Status colors map to the design system status palette where possible
+ * (lost → danger, signed → success) and to accent hues from colors.md for
+ * the pipeline-only states (emailed, spoke, zooms).
+ */
+
 interface StatusStyle {
   dot: string;
   text: string;
@@ -8,14 +16,54 @@ interface StatusStyle {
 }
 
 const STATUS_STYLE: Record<LeadStatus, StatusStyle> = {
-  blank:               { dot: "bg-[var(--color-disabled)]", text: "text-subtle",                 bg: "bg-[var(--color-border)]",                ring: "ring-[var(--color-border-strong)]" },
-  emailed:             { dot: "bg-sky-500",                  text: "text-sky-700",                bg: "bg-sky-500/10",                           ring: "ring-sky-500/30" },
-  spoke_with_attorney: { dot: "bg-amber-500",                text: "text-amber-700",              bg: "bg-amber-500/10",                         ring: "ring-amber-500/30" },
-  zoom_scheduled:      { dot: "bg-violet-500",               text: "text-violet-700",             bg: "bg-violet-500/10",                        ring: "ring-violet-500/30" },
-  post_zoom:           { dot: "bg-fuchsia-500",              text: "text-fuchsia-700",            bg: "bg-fuchsia-500/10",                       ring: "ring-fuchsia-500/30" },
-  second_zoom:         { dot: "bg-indigo-500",               text: "text-indigo-700",             bg: "bg-indigo-500/10",                        ring: "ring-indigo-500/30" },
-  lost_lead:           { dot: "bg-[var(--color-danger)]",    text: "text-[var(--color-danger)]",  bg: "bg-[var(--color-danger)]/10",             ring: "ring-[var(--color-danger)]/30" },
-  signed:              { dot: "bg-[var(--color-success)]",   text: "text-[var(--color-success)]", bg: "bg-[var(--color-success)]/10",            ring: "ring-[var(--color-success)]/30" },
+  blank: {
+    dot: "bg-[var(--color-gray)]",
+    text: "text-body-subtle",
+    bg: "bg-neutral-secondary-medium",
+    ring: "ring-[var(--color-border-default)]",
+  },
+  emailed: {
+    dot: "bg-sky-500",
+    text: "text-sky-700",
+    bg: "bg-sky-50",
+    ring: "ring-sky-200",
+  },
+  spoke_with_attorney: {
+    dot: "bg-amber-500",
+    text: "text-amber-700",
+    bg: "bg-amber-50",
+    ring: "ring-amber-200",
+  },
+  zoom_scheduled: {
+    dot: "bg-violet-500",
+    text: "text-violet-700",
+    bg: "bg-violet-50",
+    ring: "ring-violet-200",
+  },
+  post_zoom: {
+    dot: "bg-fuchsia-500",
+    text: "text-fuchsia-700",
+    bg: "bg-fuchsia-50",
+    ring: "ring-fuchsia-200",
+  },
+  second_zoom: {
+    dot: "bg-indigo-500",
+    text: "text-indigo-700",
+    bg: "bg-indigo-50",
+    ring: "ring-indigo-200",
+  },
+  lost_lead: {
+    dot: "bg-[var(--color-danger)]",
+    text: "text-fg-danger-strong",
+    bg: "bg-danger-soft",
+    ring: "ring-[var(--color-border-danger-subtle)]",
+  },
+  signed: {
+    dot: "bg-[var(--color-success)]",
+    text: "text-fg-success-strong",
+    bg: "bg-success-soft",
+    ring: "ring-[var(--color-border-success-subtle)]",
+  },
 };
 
 export function statusStyle(status: LeadStatus): StatusStyle {
@@ -54,8 +102,10 @@ interface StatusDropdownProps {
   size?: "sm" | "md";
 }
 
-/** Inline-edit dropdown that styles itself like a StatusBadge for the
- *  selected status. Native select is used so it works on mobile + keyboard. */
+/**
+ * Native-select dropdown styled as a status pill. Reliable on mobile and
+ * keyboard, looks like the StatusBadge for the selected value.
+ */
 export function StatusDropdown({ value, onChange, disabled, size = "md" }: StatusDropdownProps) {
   const style = STATUS_STYLE[value];
   const sizeCls = size === "sm" ? "text-[10px] px-1.5 py-0.5 pr-5" : "text-xs px-2 py-1 pr-6";
@@ -67,8 +117,10 @@ export function StatusDropdown({ value, onChange, disabled, size = "md" }: Statu
         disabled={disabled}
         className={[
           "appearance-none rounded-full font-medium whitespace-nowrap cursor-pointer",
-          "ring-1 ring-inset focus:outline-none focus:ring-2 focus:ring-brand",
+          "ring-1 ring-inset",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
           "disabled:opacity-50 disabled:cursor-not-allowed",
+          "transition-colors duration-150",
           sizeCls,
           style.bg,
           style.text,
