@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, CTAButton } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { Logo } from "./ui/Logo";
+import { Modal, ModalHeader, ModalBody } from "./ui/Modal";
+import { inputClass } from "./ui/Input";
 import {
   isProbeReport,
   listReports,
@@ -37,8 +38,6 @@ export function LoadReportDialog({ open, onClose, onLoaded, onUseMock }: LoadRep
     };
   }, [open, reloadKey]);
 
-  if (!open) return null;
-
   const handleLoad = async (raw: string) => {
     setError(null);
     try {
@@ -60,140 +59,111 @@ export function LoadReportDialog({ open, onClose, onLoaded, onUseMock }: LoadRep
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/30 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-surface rounded-[8px] shadow-xl border border-[var(--color-border)] w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-6 border-b border-[var(--color-border)] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Logo size={32} />
-            <h2 className="text-lg font-semibold text-heading">Load Probe Report</h2>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="close"
-            className="w-8 h-8 rounded-[8px] bg-surface shadow-sm hover:shadow-md active:nm-inset transition-all duration-200 flex items-center justify-center text-subtle"
-          >
-            ×
-          </button>
-        </div>
+    <Modal open={open} onClose={onClose} size="md" ariaLabel="Load Probe Report">
+      <ModalHeader onClose={onClose}>Load Probe Report</ModalHeader>
 
-        <div className="p-6 flex flex-col gap-5">
-
-          {/* Recent reports */}
-          {stored.length > 0 && (
-            <section>
-              <p className="text-xs font-semibold text-subtle uppercase tracking-wider mb-2">
-                Recent reports
-              </p>
-              <div className="flex flex-col gap-1.5">
-                {stored.slice(0, 6).map((s) => (
-                  <Card
-                    key={s.id}
-                    interactive
-                    className="flex items-center justify-between p-3"
+      <ModalBody className="flex flex-col gap-5">
+        {/* Recent reports */}
+        {stored.length > 0 && (
+          <section>
+            <p className="text-xs font-semibold text-body-subtle uppercase tracking-wider mb-2">
+              Recent reports
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {stored.slice(0, 6).map((s) => (
+                <Card key={s.id} interactive className="flex items-center justify-between p-3">
+                  <button
+                    onClick={() => {
+                      setActiveReport(s.id);
+                      onLoaded(s.report);
+                    }}
+                    className="flex-1 text-left"
                   >
-                    <button
-                      onClick={() => {
-                        setActiveReport(s.id);
-                        onLoaded(s.report);
-                      }}
-                      className="flex-1 text-left"
-                    >
-                      <p className="text-sm font-medium text-heading">{s.report.firm.name}</p>
-                      <p className="text-xs text-subtle">
-                        {s.report.firm.city}, {s.report.firm.state} · {s.report.firm.practiceArea} ·{" "}
-                        {new Date(s.loadedAt).toLocaleDateString()}
-                      </p>
-                    </button>
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        await deleteReport(s.id);
-                        setReloadKey((k) => k + 1);
-                      }}
-                      aria-label="delete"
-                      className="text-subtle hover:text-[var(--color-danger)] text-sm px-2"
-                    >
-                      ×
-                    </button>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Upload */}
-          <section>
-            <p className="text-xs font-semibold text-subtle uppercase tracking-wider mb-2">
-              Upload .json file
-            </p>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFile(file);
-              }}
-            />
-            <Button
-              variant="neutral"
-              fullWidth
-              onClick={() => fileRef.current?.click()}
-            >
-              📁 Choose JSON file
-            </Button>
-            <p className="text-2xs text-subtle mt-1.5 leading-relaxed">
-              Run <code className="text-brand">npm run probe</code> in <code>spike/probe/</code>{" "}
-              to generate a report file.
-            </p>
-          </section>
-
-          {/* Paste */}
-          <section>
-            <p className="text-xs font-semibold text-subtle uppercase tracking-wider mb-2">
-              Or paste JSON
-            </p>
-            <textarea
-              value={pasteValue}
-              onChange={(e) => setPasteValue(e.target.value)}
-              placeholder='{"firm": {"name": "..."}, ...}'
-              className="w-full h-32 bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-2 text-xs text-body resize-none outline-none focus:ring-2 focus:ring-brand font-mono"
-            />
-            <Button
-              variant="brand"
-              fullWidth
-              className="mt-2"
-              disabled={!pasteValue.trim()}
-              onClick={() => void handleLoad(pasteValue)}
-            >
-              Load pasted report
-            </Button>
-          </section>
-
-          {error && (
-            <div className="bg-[#FEF2F2] border border-[var(--color-danger)]/30 rounded-[8px] p-3">
-              <p className="text-xs text-[var(--color-danger)]">{error}</p>
+                    <p className="text-sm font-medium text-heading">{s.report.firm.name}</p>
+                    <p className="text-xs text-body-subtle">
+                      {s.report.firm.city}, {s.report.firm.state} · {s.report.firm.practiceArea} ·{" "}
+                      {new Date(s.loadedAt).toLocaleDateString()}
+                    </p>
+                  </button>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await deleteReport(s.id);
+                      setReloadKey((k) => k + 1);
+                    }}
+                    aria-label="delete"
+                    className="text-body-subtle hover:text-fg-danger text-sm px-2"
+                  >
+                    ×
+                  </button>
+                </Card>
+              ))}
             </div>
-          )}
-
-          {/* Mock fallback */}
-          <section className="border-t border-[var(--color-border)] pt-4">
-            <CTAButton fullWidth onClick={onUseMock}>
-              Demo: Olson Law Office
-            </CTAButton>
-            <p className="text-2xs text-subtle text-center mt-1.5">
-              Use the built-in mock report (Great Falls, MT — criminal defense).
-            </p>
           </section>
-        </div>
-      </div>
-    </div>
+        )}
+
+        {/* Upload */}
+        <section>
+          <p className="text-xs font-semibold text-body-subtle uppercase tracking-wider mb-2">
+            Upload .json file
+          </p>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFile(file);
+            }}
+          />
+          <Button variant="neutral" fullWidth onClick={() => fileRef.current?.click()}>
+            📁 Choose JSON file
+          </Button>
+          <p className="text-2xs text-body-subtle mt-1.5 leading-relaxed">
+            Run <code className="text-fg-brand font-mono">npm run probe</code> in{" "}
+            <code className="font-mono">spike/probe/</code> to generate a report file.
+          </p>
+        </section>
+
+        {/* Paste */}
+        <section>
+          <p className="text-xs font-semibold text-body-subtle uppercase tracking-wider mb-2">
+            Or paste JSON
+          </p>
+          <textarea
+            value={pasteValue}
+            onChange={(e) => setPasteValue(e.target.value)}
+            placeholder='{"firm": {"name": "..."}, ...}'
+            className={`${inputClass} h-32 text-xs resize-none font-mono`}
+          />
+          <Button
+            variant="neutral"
+            fullWidth
+            className="mt-2"
+            disabled={!pasteValue.trim()}
+            onClick={() => void handleLoad(pasteValue)}
+          >
+            Load pasted report
+          </Button>
+        </section>
+
+        {error && (
+          <div className="bg-danger-soft border border-[var(--color-border-danger-subtle)] rounded-[8px] p-3">
+            <p className="text-xs text-fg-danger-strong">{error}</p>
+          </div>
+        )}
+
+        {/* Mock fallback */}
+        <section className="border-t border-[var(--color-border-default)] pt-4">
+          <CTAButton fullWidth onClick={onUseMock}>
+            Demo: Olson Law Office
+          </CTAButton>
+          <p className="text-2xs text-body-subtle text-center mt-1.5">
+            Use the built-in mock report (Great Falls, MT — criminal defense).
+          </p>
+        </section>
+      </ModalBody>
+    </Modal>
   );
 }
