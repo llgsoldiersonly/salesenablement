@@ -6,6 +6,9 @@ import {
   listLeads,
   updateLead,
   updateLeadStatus,
+  updateAssessmentContact,
+  type AssessmentContactPatch,
+  type Lead,
   type LeadStatus,
   type LeadWithAssessment,
 } from "../lib/leads";
@@ -98,6 +101,45 @@ export function LeadsApp() {
       }
       const result = await updateLeadStatus(leadId, status);
       if (!result) await refresh();
+    },
+    [activeLead, refresh],
+  );
+
+  // Patch arbitrary lead fields (used by the editable detail drawer)
+  const handlePatchLead = useCallback(
+    async (patch: Partial<Lead>): Promise<boolean> => {
+      if (!activeLead) return false;
+      const leadId = activeLead.id;
+      // Optimistic update
+      setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, ...patch } : l)));
+      setActiveLead({ ...activeLead, ...patch });
+      const result = await updateLead(leadId, patch);
+      if (!result) {
+        await refresh();
+        return false;
+      }
+      return true;
+    },
+    [activeLead, refresh],
+  );
+
+  // Patch the underlying assessment's contact fields. Lead's join-fields
+  // mirror those, so we update both the assessment and the local lead state.
+  const handlePatchAssessmentContact = useCallback(
+    async (patch: AssessmentContactPatch): Promise<boolean> => {
+      if (!activeLead) return false;
+      const assessmentId = activeLead.assessment_id;
+      // Optimistic — patch every lead that joins this assessment
+      setLeads((prev) =>
+        prev.map((l) => (l.assessment_id === assessmentId ? { ...l, ...patch } : l)),
+      );
+      setActiveLead({ ...activeLead, ...patch });
+      const ok = await updateAssessmentContact(assessmentId, patch);
+      if (!ok) {
+        await refresh();
+        return false;
+      }
+      return true;
     },
     [activeLead, refresh],
   );
@@ -284,6 +326,8 @@ export function LeadsApp() {
           onClose={() => setActiveLead(null)}
           onStatusChange={(next) => handleStatusChange(activeLead.id, next)}
           onTogglePin={(next) => handleTogglePin(activeLead.id, next)}
+          onPatchLead={handlePatchLead}
+          onPatchAssessmentContact={handlePatchAssessmentContact}
         />
       )}
     </div>
