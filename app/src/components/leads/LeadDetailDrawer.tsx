@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"; // useState used by FlipReadySection below
 import {
   LEAD_STATUS_LABEL,
   type Lead,
@@ -26,6 +26,8 @@ interface Props {
   onPatchLead: (patch: Partial<Lead>) => Promise<boolean>;
   /** Persist a patch to the underlying assessment's contact fields. */
   onPatchAssessmentContact: (patch: AssessmentContactPatch) => Promise<boolean>;
+  /** Toggle the persistent "ready for closer" flag. */
+  onToggleReadyForCloser: (next: boolean) => Promise<boolean>;
 }
 
 export function LeadDetailDrawer({
@@ -35,6 +37,7 @@ export function LeadDetailDrawer({
   onTogglePin,
   onPatchLead,
   onPatchAssessmentContact,
+  onToggleReadyForCloser,
 }: Props) {
   const [history, setHistory] = useState<LeadStatusHistoryRow[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -109,6 +112,14 @@ export function LeadDetailDrawer({
           <span className="text-2xs uppercase tracking-wider text-body-subtle">Status</span>
           <StatusDropdown value={lead.status} onChange={onStatusChange} />
         </section>
+
+        {/* Flip Ready toggle */}
+        <FlipReadySection
+          ready={lead.ready_for_closer}
+          readyAt={lead.ready_for_closer_at}
+          onToggle={onToggleReadyForCloser}
+          disabled={lead.status === "lost_lead" || lead.status === "signed"}
+        />
 
         {/* Sales context */}
         <Section title="Sales context">
@@ -306,6 +317,69 @@ export function LeadDetailDrawer({
         </Section>
       </aside>
     </>
+  );
+}
+
+interface FlipReadySectionProps {
+  ready: boolean;
+  readyAt: string | null;
+  onToggle: (next: boolean) => Promise<boolean>;
+  disabled: boolean;
+}
+
+function FlipReadySection({ ready, readyAt, onToggle, disabled }: FlipReadySectionProps) {
+  const [saving, setSaving] = useState(false);
+  const handleClick = async () => {
+    if (saving || disabled) return;
+    setSaving(true);
+    try {
+      await onToggle(!ready);
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <section
+      className={[
+        "px-5 py-3 border-b border-[var(--color-border-default)] flex items-center justify-between gap-3",
+        ready ? "bg-brand-softer" : "",
+      ].join(" ")}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-2xs uppercase tracking-wider text-body-subtle">Closer pickup</p>
+        <p className="text-sm mt-0.5">
+          {ready ? (
+            <>
+              <span className="text-fg-brand-strong font-medium">🚩 Ready for closer</span>
+              {readyAt && (
+                <span className="text-2xs text-body-subtle ml-2">
+                  ({relativeDays(readyAt)} ago)
+                </span>
+              )}
+            </>
+          ) : disabled ? (
+            <span className="text-body-subtle italic">Lead is closed; not pickable</span>
+          ) : (
+            <span className="text-body-subtle italic">Not yet queued for closer</span>
+          )}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => void handleClick()}
+        disabled={saving || disabled}
+        className={[
+          "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors",
+          "focus:outline-none focus:ring-4 focus:ring-brand-medium",
+          ready
+            ? "bg-neutral-secondary-medium text-body hover:bg-neutral-tertiary-medium border border-[var(--color-border-default)]"
+            : "bg-brand text-white hover:bg-brand-strong",
+          "disabled:opacity-50 disabled:cursor-not-allowed",
+        ].join(" ")}
+      >
+        {ready ? "Unmark" : "🚩 Mark ready"}
+      </button>
+    </section>
   );
 }
 

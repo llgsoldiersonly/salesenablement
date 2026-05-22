@@ -85,6 +85,9 @@ export function LeadsKanbanView({ leads, onOpenLead }: Props) {
                       {/* Title row */}
                       <div className="flex items-start justify-between gap-1.5">
                         <span className="text-xs font-semibold text-heading truncate">
+                          {lead.ready_for_closer && (
+                            <span className="mr-1" title="Ready for closer pickup">🚩</span>
+                          )}
                           {lead.pinned && <span className="text-brand mr-0.5">★</span>}
                           {leadDisplayName(lead)}
                         </span>
