@@ -15,6 +15,7 @@ import { statusStyle } from "./leads/StatusBadge";
 import { LeadsTableView } from "./leads/LeadsTableView";
 import { LeadsKanbanView } from "./leads/LeadsKanbanView";
 import { LeadDetailDrawer } from "./leads/LeadDetailDrawer";
+import { Input } from "./ui/Input";
 
 type ViewMode = "spreadsheet" | "kanban";
 
@@ -187,12 +188,13 @@ export function LeadsApp() {
       <div className="shrink-0 bg-surface border-b border-[var(--color-border)] px-3 sm:px-6 py-2.5 flex flex-col gap-2.5">
         {/* Top row: search + view toggle + refresh */}
         <div className="flex items-center justify-between gap-3">
-          <input
+          <Input
             type="text"
             placeholder="Search firm, contact, tag…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 max-w-md bg-surface shadow-inset rounded-[8px] border border-[var(--color-border)] px-3 py-1.5 text-sm text-body outline-none focus:ring-2 focus:ring-brand"
+            leadingIcon={<span aria-hidden>🔍</span>}
+            containerClassName="flex-1 max-w-md"
           />
           <div className="flex items-center gap-2 shrink-0">
             <button
