@@ -9,6 +9,7 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
+  createTelephonySubscription,
   exchangeCodeForTokens,
   persistFreshTokens,
   rcEnvReady,
@@ -54,6 +55,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   try {
     const tokens = await exchangeCodeForTokens(code);
     await persistFreshTokens(verified.userId, tokens);
+    // Fire-and-forget: create a telephony webhook subscription. If it fails
+    // (e.g. scope wasn't granted), the user is still connected for click-to-
+    // dial; webhooks just won't fire. They can disconnect + reconnect later
+    // with the full scope set.
+    void createTelephonySubscription(verified.userId).then((result) => {
+      if (!result.ok) {
+        console.warn("[rc/oauth-callback] subscription create failed:", result.error);
+      }
+    });
     redirectWithFlag(res, "connected");
   } catch (err) {
     console.error("[rc/oauth-callback] failed:", err);

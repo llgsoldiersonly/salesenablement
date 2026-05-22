@@ -8,7 +8,7 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { verifyAuth, unauthorizedResponse } from "../../server/verifyAuth.js";
-import { deleteCredentials } from "../../server/ringcentral.js";
+import { deleteCredentials, deleteTelephonySubscription } from "../../server/ringcentral.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== "POST") {
@@ -20,6 +20,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     unauthorizedResponse(res);
     return;
   }
+  // Delete the webhook subscription first (needs valid tokens to call RC).
+  // Best-effort; if it fails we still proceed with credential deletion.
+  await deleteTelephonySubscription(userId).catch((err) =>
+    console.warn("[rc/disconnect] delete subscription failed:", err),
+  );
   const ok = await deleteCredentials(userId);
   res.status(ok ? 200 : 500).json({ ok });
 }

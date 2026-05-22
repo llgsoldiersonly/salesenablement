@@ -61,9 +61,18 @@ export function verifyState(state: string): { userId: string } | null {
   return { userId };
 }
 
+/* ── OAuth scopes ─────────────────────────────────────────────────────── */
+
+/**
+ * Scopes the app requests at OAuth time. RingOut for click-to-dial,
+ * SubscriptionWebhook for B1 webhooks, ReadCallLog for future B4 recording
+ * attach. Add to the RC dev app's Permissions to make these grantable.
+ */
+export const DEFAULT_RC_SCOPES = ["RingOut", "SubscriptionWebhook", "ReadCallLog"];
+
 /* ── OAuth URL builder ───────────────────────────────────────────────── */
 
-export function buildAuthorizeUrl(state: string, scopes: string[] = ["RingOut"]): string {
+export function buildAuthorizeUrl(state: string, scopes: string[] = DEFAULT_RC_SCOPES): string {
   const params = new URLSearchParams({
     response_type: "code",
     client_id: RC_CLIENT_ID,
@@ -338,3 +347,228 @@ export async function placeRingOut(
   const body = (await res.json()) as { id: string; status?: { callStatus?: string } };
   return { ok: true, ringOutId: body.id, status: body.status?.callStatus ?? "InProgress" };
 }
+
+/* ── Webhook subscriptions (B1) ─────────────────────────────────────── */
+
+export const WEBHOOK_RECEIVER_URL =
+  process.env.RINGCENTRAL_WEBHOOK_URL ?? "https://www.llgbot.com/api/rc/webhook";
+
+/** Event filter for live telephony events (used by B2 screen-pop + B3 flip). */
+export const TELEPHONY_SESSION_FILTER = "/restapi/v1.0/account/~/extension/~/telephony/sessions";
+
+/** RC's max subscription lifetime is 7 days (604800s). We renew daily. */
+const SUBSCRIPTION_LIFETIME_SECONDS = 604800;
+const SUBSCRIPTION_RENEW_BUFFER_HOURS = 48;
+
+interface RcSubscriptionResponse {
+  id: string;
+  status: string;
+  eventFilters: string[];
+  expirationTime: string;
+  deliveryMode: { transportType: string; address: string; verificationToken?: string };
+}
+
+/**
+ * Create a webhook subscription for telephony events on this user's extension.
+ * Stores the subscription_id + verification_token in rc_webhook_subscriptions.
+ */
+export async function createTelephonySubscription(userId: string): Promise<{
+  ok: true;
+  subscriptionId: string;
+  expiresAt: string;
+} | { ok: false; error: string }> {
+  const creds = await getValidCredentials(userId);
+  if (!creds) return { ok: false, error: "No valid RC credentials." };
+
+  const verificationToken = crypto.randomBytes(24).toString("hex");
+
+  const res = await fetch(`${RC_SERVER_URL}/restapi/v1.0/subscription`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${creds.accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      eventFilters: [TELEPHONY_SESSION_FILTER],
+      deliveryMode: {
+        transportType: "WebHook",
+        address: WEBHOOK_RECEIVER_URL,
+        verificationToken,
+      },
+      expiresIn: SUBSCRIPTION_LIFETIME_SECONDS,
+    }),
+  });
+
+  if (!res.ok) {
+    return { ok: false, error: `RC subscription create ${res.status}: ${await res.text()}` };
+  }
+  const body = (await res.json()) as RcSubscriptionResponse;
+
+  const supabase = serviceClient();
+  await supabase.from("rc_webhook_subscriptions").upsert(
+    {
+      user_id: userId,
+      subscription_id: body.id,
+      verification_token: verificationToken,
+      event_filters: body.eventFilters,
+      expires_at: body.expirationTime,
+      status: body.status,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+
+  return { ok: true, subscriptionId: body.id, expiresAt: body.expirationTime };
+}
+
+/** Renew an existing subscription before it expires (extends to +7 days). */
+export async function renewTelephonySubscription(userId: string): Promise<boolean> {
+  const supabase = serviceClient();
+  const { data: subRow } = await supabase
+    .from("rc_webhook_subscriptions")
+    .select("subscription_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!subRow) return false;
+
+  const creds = await getValidCredentials(userId);
+  if (!creds) return false;
+
+  const res = await fetch(
+    `${RC_SERVER_URL}/restapi/v1.0/subscription/${subRow.subscription_id}/renew`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${creds.accessToken}` },
+    },
+  );
+
+  if (!res.ok) {
+    // Subscription likely expired or was deleted on RC side — recreate it
+    if (res.status === 404) {
+      const fresh = await createTelephonySubscription(userId);
+      return fresh.ok;
+    }
+    console.error("[rc] renew failed:", res.status, await res.text());
+    return false;
+  }
+  const body = (await res.json()) as RcSubscriptionResponse;
+  await supabase
+    .from("rc_webhook_subscriptions")
+    .update({
+      expires_at: body.expirationTime,
+      status: body.status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+  return true;
+}
+
+/** Delete a user's subscription at RC and remove our record of it. */
+export async function deleteTelephonySubscription(userId: string): Promise<void> {
+  const supabase = serviceClient();
+  const { data: subRow } = await supabase
+    .from("rc_webhook_subscriptions")
+    .select("subscription_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!subRow) return;
+
+  const creds = await getValidCredentials(userId);
+  if (creds) {
+    // Best-effort delete at RC. If it fails (token already expired), we still
+    // delete our local row — the subscription will time out on RC's side.
+    await fetch(`${RC_SERVER_URL}/restapi/v1.0/subscription/${subRow.subscription_id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${creds.accessToken}` },
+    }).catch((err) => console.warn("[rc] DELETE subscription failed:", err));
+  }
+  await supabase.from("rc_webhook_subscriptions").delete().eq("user_id", userId);
+}
+
+/** Find the user whose subscription corresponds to a given subscription_id. */
+export async function lookupSubscriptionOwner(
+  subscriptionId: string,
+): Promise<{ userId: string; verificationToken: string } | null> {
+  const supabase = serviceClient();
+  const { data, error } = await supabase
+    .from("rc_webhook_subscriptions")
+    .select("user_id, verification_token")
+    .eq("subscription_id", subscriptionId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return { userId: data.user_id, verificationToken: data.verification_token };
+}
+
+/** Subscriptions expiring within N hours that should be renewed. */
+export async function getSubscriptionsDueForRenewal(): Promise<string[]> {
+  const cutoff = new Date(Date.now() + SUBSCRIPTION_RENEW_BUFFER_HOURS * 3600 * 1000).toISOString();
+  const supabase = serviceClient();
+  const { data, error } = await supabase
+    .from("rc_webhook_subscriptions")
+    .select("user_id")
+    .lte("expires_at", cutoff);
+  if (error || !data) return [];
+  return data.map((r) => (r as { user_id: string }).user_id);
+}
+
+/* ── Webhook event ingestion ─────────────────────────────────────────── */
+
+interface RcTelephonySessionEvent {
+  uuid?: string;
+  event?: string;
+  timestamp?: string;
+  subscriptionId?: string;
+  ownerId?: string;
+  body?: {
+    telephonySessionId?: string;
+    sessionId?: string;
+    sequence?: number;
+    serverId?: string;
+    parties?: Array<{
+      id?: string;
+      direction?: string;
+      to?: { phoneNumber?: string; name?: string };
+      from?: { phoneNumber?: string; name?: string };
+      status?: { code?: string };
+      missedCall?: boolean;
+      conferenceRole?: string;
+    }>;
+    [k: string]: unknown;
+  };
+}
+
+/**
+ * Persist a single webhook event into sales_call_events. Extracts the key
+ * fields from RC's nested payload so simple queries (e.g. "find all events
+ * for caller X in the last hour") don't need JSON drilling.
+ */
+export async function recordCallEvent(
+  userId: string,
+  subscriptionId: string | null,
+  payload: RcTelephonySessionEvent,
+): Promise<void> {
+  const body = payload.body ?? {};
+  const firstParty = body.parties?.[0];
+  const sessionId = body.telephonySessionId ?? body.sessionId ?? null;
+  const direction = firstParty?.direction ?? null;
+  const status = firstParty?.status?.code ?? null;
+  const callerNumber = firstParty?.from?.phoneNumber ?? null;
+  const calleeNumber = firstParty?.to?.phoneNumber ?? null;
+  const partyId = firstParty?.id ?? null;
+
+  const supabase = serviceClient();
+  const { error } = await supabase.from("sales_call_events").insert({
+    user_id: userId,
+    rc_subscription_id: subscriptionId,
+    rc_session_id: sessionId,
+    rc_party_id: partyId,
+    event_type: payload.event ?? "telephony.session",
+    direction,
+    status,
+    caller_number: callerNumber,
+    callee_number: calleeNumber,
+    raw: payload as unknown as Record<string, unknown>,
+  });
+  if (error) console.error("[rc] recordCallEvent insert failed:", error.message);
+}
+
