@@ -14,6 +14,7 @@ import {
   EditableTextareaRow,
   EditableCheckboxRow,
 } from "./EditableField";
+import { CallButton } from "./CallButton";
 import { formatCents, leadDisplayName, leadLocation, relativeDays } from "./leadFormatters";
 
 interface Props {
@@ -168,6 +169,7 @@ export function LeadDetailDrawer({
               type="tel"
               onSave={(next) => onPatchAssessmentContact({ contact_phone: next })}
               placeholder="Not captured"
+              rightAddon={<CallButton phone={lead.contact_phone} leadId={lead.id} />}
             />
             <EditableRow
               label="Decision-maker"

@@ -28,6 +28,8 @@ interface EditableRowProps extends BaseProps {
   onSave: (next: string | null) => Promise<unknown> | void;
   placeholder?: string;
   type?: "text" | "email" | "tel";
+  /** Rendered to the right of the value when not editing (e.g. a call button). */
+  rightAddon?: ReactNode;
 }
 
 export function EditableRow({
@@ -37,6 +39,7 @@ export function EditableRow({
   placeholder = "—",
   type = "text",
   disabled = false,
+  rightAddon,
 }: EditableRowProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
@@ -90,21 +93,26 @@ export function EditableRow({
           className="w-full bg-neutral-primary-soft rounded-[6px] border border-brand px-2 py-1 text-sm text-heading focus:outline-none focus:ring-1 focus:ring-brand"
         />
       ) : (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => setEditing(true)}
-          className={[
-            "w-full text-left px-2 py-1 -mx-2 rounded-[6px] text-sm break-words",
-            value ? "text-body" : "text-body-subtle italic",
-            disabled
-              ? "cursor-default"
-              : "hover:bg-neutral-secondary-medium cursor-text",
-          ].join(" ")}
-          title={disabled ? undefined : "Click to edit"}
-        >
-          {value || placeholder}
-        </button>
+        <div className="flex items-center gap-1.5 -mx-2">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setEditing(true)}
+            className={[
+              "flex-1 text-left px-2 py-1 rounded-[6px] text-sm break-words",
+              value ? "text-body" : "text-body-subtle italic",
+              disabled
+                ? "cursor-default"
+                : "hover:bg-neutral-secondary-medium cursor-text",
+            ].join(" ")}
+            title={disabled ? undefined : "Click to edit"}
+          >
+            {value || placeholder}
+          </button>
+          {rightAddon && value && (
+            <div className="shrink-0 pr-1">{rightAddon}</div>
+          )}
+        </div>
       )}
     </Row>
   );
