@@ -2,126 +2,299 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── LLG Design Tokens ──────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────────────
+ * Design tokens — TypeUI-derived system, LLG brand applied.
+ *
+ * Source of truth for colors, typography, shadows, radii. The Tailwind
+ * config maps utility classes (bg-surface, text-heading, shadow-md, etc.)
+ * onto these CSS variables, so theme/brand changes flow through every
+ * component automatically.
+ *
+ * Theme strategy:
+ *   :root[data-theme="light"]  = forced light
+ *   :root[data-theme="dark"]   = forced dark
+ *   :root (no data-theme)      = follow OS via @media query
+ * ────────────────────────────────────────────────────────────────────────── */
 
-/* Light theme (default) */
 :root,
 :root[data-theme="light"] {
-  /* Surface — the single neumorphic background. Every element uses this. */
-  --color-surface: #ecf0f3;
+  /* ── Neutral surfaces ─────────────────────────────────────────── */
+  --color-neutral-primary-soft:     #FFFFFF;
+  --color-neutral-primary:          #FFFFFF;
+  --color-neutral-primary-medium:   #FFFFFF;
+  --color-neutral-primary-strong:   #FFFFFF;
+  --color-neutral-secondary-soft:   #F9FAFB;
+  --color-neutral-secondary:        #F9FAFB;
+  --color-neutral-secondary-medium: #F9FAFB;
+  --color-neutral-secondary-strong: #F9FAFB;
+  --color-neutral-tertiary-soft:    #F3F4F6;
+  --color-neutral-tertiary:         #F3F4F6;
+  --color-neutral-tertiary-medium:  #F3F4F6;
+  --color-neutral-quaternary:       #E5E7EB;
+  --color-quaternary-medium:        #E5E7EB;
+  --color-gray:                     #D1D5DC;
 
-  /* Text */
-  --color-heading: #0f172a;
-  --color-body: #334155;
-  --color-body-subtle: #64748b;
+  /* ── Brand — LLG terracotta, mapped into the brand token slots ── */
+  --color-brand-softer:  #FFF1EC;
+  --color-brand-soft:    #FFD9C9;
+  --color-brand:         #F05A28;
+  --color-brand-medium:  #FFB89A;
+  --color-brand-strong:  #C8451E;
 
-  /* Brand */
-  --color-brand: #f05a28;       /* terracotta orange — CTAs, active states   */
-  --color-secondary: #231500;   /* deep brown — accent                        */
-  --color-disabled: #787878;    /* mid-gray — disabled / muted                */
+  /* ── Status ─────────────────────────────────────────────────────── */
+  --color-success-soft:   #ECFDF5;
+  --color-success:        #007A55;
+  --color-success-medium: #D0FAE5;
+  --color-success-strong: #006045;
+  --color-danger-soft:    #FEF0F2;
+  --color-danger:         #C70036;
+  --color-danger-medium:  #FFE4E6;
+  --color-danger-strong:  #A50036;
+  --color-warning-soft:   #FFF7ED;
+  --color-warning:        #F97316;
+  --color-warning-medium: #FFEDD5;
+  --color-warning-strong: #C2410C;
 
-  /* Border — 1px subtle edge over neumorphic surface */
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-border-strong: rgba(0, 0, 0, 0.16);
+  /* ── Text ───────────────────────────────────────────────────────── */
+  --color-heading:           #111827;
+  --color-body:              #4B5563;
+  --color-body-subtle:       #6B7280;
+  --color-fg-brand-subtle:   #FFD9C9;
+  --color-fg-brand:          #C8451E;
+  --color-fg-brand-strong:   #9A3517;
+  --color-fg-success:        #047857;
+  --color-fg-success-strong: #065F46;
+  --color-fg-danger:         #BE123C;
+  --color-fg-danger-strong:  #881337;
+  --color-fg-warning-subtle: #EA580C;
+  --color-fg-warning:        #7C2D12;
+  --color-fg-disabled:       #9CA3AF;
 
-  /* Status */
-  --color-success: #16a34a;
-  --color-danger: #dc2626;
-  --color-warning: #d97706;
+  /* ── Borders ────────────────────────────────────────────────────── */
+  --color-border-muted:           #F9FAFB;
+  --color-border-light:           #F3F4F6;
+  --color-border-default-subtle:  #E5E7EB;
+  --color-border-default:         #E5E7EB;
+  --color-border-default-medium:  #E5E7EB;
+  --color-border-default-strong:  #D1D5DC;
+  --color-border-brand-subtle:    #FFD9C9;
+  --color-border-brand:           #F05A28;
+  --color-border-success:         #047857;
+  --color-border-success-subtle:  #A7F3D0;
+  --color-border-danger:          #BE123C;
+  --color-border-danger-subtle:   #FECDD3;
+  --color-border-warning:         #EA580C;
+  --color-border-warning-subtle:  #FED7AA;
 
-  /* Neumorphic shadow colors — pair of darker/lighter than surface.
-     Defined as vars so the dark theme can swap them without touching utilities. */
-  --nm-shadow-dark: #b8b9be;
-  --nm-shadow-light: #ffffff;
+  /* ── Utility / accent ───────────────────────────────────────────── */
+  --color-dark:        #1F2937;
+  --color-dark-strong: #111827;
+  --color-disabled:    #F3F4F6;
+
+  /* ── Modern elevation shadows ───────────────────────────────────── */
+  --shadow-2xs: 0 1px 0 rgb(0 0 0 / 0.05);
+  --shadow-xs:  0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm:  0 1px 3px 0 rgb(0 0 0 / 0.10), 0 1px 2px -1px rgb(0 0 0 / 0.10);
+  --shadow-md:  0 4px 6px -1px rgb(0 0 0 / 0.10), 0 2px 4px -2px rgb(0 0 0 / 0.10);
+  --shadow-lg:  0 10px 15px -3px rgb(0 0 0 / 0.10), 0 4px 6px -4px rgb(0 0 0 / 0.10);
+  --shadow-xl:  0 20px 25px -5px rgb(0 0 0 / 0.10), 0 8px 10px -6px rgb(0 0 0 / 0.10);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-inset: inset 0 1px 2px 0 rgb(0 0 0 / 0.06);
+
+  /* ── Button "glint" inset highlights (per design system) ─────── */
+  --color-1-400: rgba(255, 255, 255, 0.25);
+  --color-1-700: rgba(0, 0, 0, 0.12);
+
+  /* ── Backwards-compat aliases (old token names → new values) ──── */
+  --color-surface:         var(--color-neutral-primary-soft);
+  --color-secondary:       var(--color-body-subtle);
+  --color-border:          var(--color-border-default);
+  --color-border-strong:   var(--color-border-default-strong);
+
+  color-scheme: light;
 }
 
-/* Dark theme */
 :root[data-theme="dark"] {
-  --color-surface: #262833;
-  --color-heading: #ecf0f3;
-  --color-body: #b8bfc9;
-  --color-body-subtle: #93a5be;
-  --color-brand: #f05a28;
-  --color-secondary: #c9a678;
-  --color-disabled: #5a5a5a;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.16);
+  --color-neutral-primary-soft:     #101828;
+  --color-neutral-primary:          #030712;
+  --color-neutral-primary-medium:   #1E2939;
+  --color-neutral-primary-strong:   #333E4F;
+  --color-neutral-secondary-soft:   #101828;
+  --color-neutral-secondary:        #030712;
+  --color-neutral-secondary-medium: #1E2939;
+  --color-neutral-secondary-strong: #333E4F;
+  --color-neutral-tertiary-soft:    #101828;
+  --color-neutral-tertiary:         #1E2939;
+  --color-neutral-tertiary-medium:  #333E4F;
+  --color-neutral-quaternary:       #333E4F;
+  --color-quaternary-medium:        #4A5565;
+  --color-gray:                     #4A5565;
 
-  /* Dark neumorphic shadows: darker below-right, subtle highlight above-left */
-  --nm-shadow-dark: #1c1e26;
-  --nm-shadow-light: #303340;
+  --color-brand-softer:  #2A1610;
+  --color-brand-soft:    #5C2A12;
+  --color-brand:         #F05A28;
+  --color-brand-medium:  #8C3F1A;
+  --color-brand-strong:  #FF7547;
+
+  --color-success-soft:   #002C22;
+  --color-success:        #009966;
+  --color-success-medium: #004F3B;
+  --color-success-strong: #007A55;
+  --color-danger-soft:    #4D0218;
+  --color-danger:         #C70036;
+  --color-danger-medium:  #8B0836;
+  --color-danger-strong:  #A50036;
+  --color-warning-soft:   #7C2D12;
+  --color-warning:        #F97316;
+  --color-warning-medium: #7C2D12;
+  --color-warning-strong: #C2410C;
+
+  --color-heading:           #FFFFFF;
+  --color-body:              #9CA3AF;
+  --color-body-subtle:       #9CA3AF;
+  --color-fg-brand-subtle:   #5C2A12;
+  --color-fg-brand:          #FF8A5F;
+  --color-fg-brand-strong:   #FFD9C9;
+  --color-fg-success:        #065F46;
+  --color-fg-success-strong: #10B981;
+  --color-fg-danger:         #F43F5E;
+  --color-fg-danger-strong:  #F87171;
+  --color-fg-warning-subtle: #F97316;
+  --color-fg-warning:        #FBBF24;
+  --color-fg-disabled:       #6B7280;
+
+  --color-border-muted:           #111827;
+  --color-border-light:           #1F2937;
+  --color-border-default-subtle:  #111827;
+  --color-border-default:         #1F2937;
+  --color-border-default-medium:  #374151;
+  --color-border-default-strong:  #4B5563;
+  --color-border-brand-subtle:    #5C2A12;
+  --color-border-brand:           #FF7547;
+  --color-border-success:         #065F46;
+  --color-border-success-subtle:  #064E3B;
+  --color-border-danger:          #BE123C;
+  --color-border-danger-subtle:   #881337;
+  --color-border-warning:         #F97316;
+  --color-border-warning-subtle:  #7C2D12;
+
+  --color-dark:        #1F2937;
+  --color-dark-strong: #374151;
+  --color-disabled:    #1F2937;
+
+  --color-1-400: rgba(255, 255, 255, 0.12);
+  --color-1-700: rgba(0, 0, 0, 0.25);
+
+  --color-surface:         var(--color-neutral-primary-soft);
+  --color-secondary:       var(--color-body-subtle);
+  --color-border:          var(--color-border-default);
+  --color-border-strong:   var(--color-border-default-strong);
+
+  color-scheme: dark;
 }
 
-/* Follow OS preference when no explicit theme is set */
+/* OS preference when no theme is explicitly set */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --color-surface: #262833;
-    --color-heading: #ecf0f3;
-    --color-body: #b8bfc9;
-    --color-body-subtle: #93a5be;
-    --color-brand: #f05a28;
-    --color-secondary: #c9a678;
-    --color-disabled: #5a5a5a;
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-border-strong: rgba(255, 255, 255, 0.16);
-    --nm-shadow-dark: #1c1e26;
-    --nm-shadow-light: #303340;
+    --color-neutral-primary-soft:     #101828;
+    --color-neutral-primary:          #030712;
+    --color-neutral-primary-medium:   #1E2939;
+    --color-neutral-secondary-soft:   #101828;
+    --color-neutral-secondary:        #030712;
+    --color-neutral-secondary-medium: #1E2939;
+    --color-neutral-tertiary-soft:    #101828;
+    --color-neutral-tertiary:         #1E2939;
+    --color-neutral-tertiary-medium:  #333E4F;
+    --color-neutral-quaternary:       #333E4F;
+    --color-heading:                  #FFFFFF;
+    --color-body:                     #9CA3AF;
+    --color-body-subtle:              #9CA3AF;
+    --color-fg-brand:                 #FF8A5F;
+    --color-border-default:           #1F2937;
+    --color-border-default-medium:    #374151;
+    --color-border-default-strong:    #4B5563;
+    --color-surface:                  var(--color-neutral-primary-soft);
+    --color-border:                   var(--color-border-default);
+    --color-border-strong:            var(--color-border-default-strong);
+    color-scheme: dark;
   }
 }
 
-/* ── Base Reset ─────────────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────────────
+ * Base reset
+ * ────────────────────────────────────────────────────────────────────────── */
 
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
+html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
 }
 
 body {
-  background-color: var(--color-surface);
+  background-color: var(--color-neutral-secondary-soft);
   color: var(--color-body);
-  font-family: "Nunito Sans", sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* ── Utility Layer ──────────────────────────────────────────────────────── */
+/* Heading defaults — semibold, heading color, no margin (components control spacing) */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-heading);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Utility layer
+ * ────────────────────────────────────────────────────────────────────────── */
 
 @layer utilities {
-  /* Neumorphic raised states */
-  .nm-sm   { box-shadow: 3px 3px 6px var(--nm-shadow-dark), -3px -3px 6px var(--nm-shadow-light); }
-  .nm-md   { box-shadow: 6px 6px 12px var(--nm-shadow-dark), -6px -6px 12px var(--nm-shadow-light); }
-  .nm-lg   { box-shadow: 8px 8px 16px var(--nm-shadow-dark), -8px -8px 16px var(--nm-shadow-light); }
-  .nm-inset { box-shadow: inset 2px 2px 5px var(--nm-shadow-dark), inset -3px -3px 7px var(--nm-shadow-light); }
-
-  /* Active pressed state (matches sidebar + button active) */
-  .nm-pressed { box-shadow: inset 2px 2px 5px var(--nm-shadow-dark), inset -3px -3px 7px var(--nm-shadow-light); }
+  /* Legacy neumorphic utilities — kept for backwards compatibility but
+     redefined to modern elevation. Components that referenced .nm-sm /
+     .nm-md / .nm-lg / .nm-inset still work; they just look modern now. */
+  .nm-sm     { box-shadow: var(--shadow-xs); }
+  .nm-md     { box-shadow: var(--shadow-sm); }
+  .nm-lg     { box-shadow: var(--shadow-md); }
+  .nm-inset  { box-shadow: var(--shadow-inset); }
+  .nm-pressed { box-shadow: var(--shadow-inset); background-color: var(--color-neutral-tertiary-soft); }
 
   /* Brand accent left border (opener notes card) */
   .border-l-brand { border-left: 3px solid var(--color-brand); }
 
-  /* Scrollbar thin */
-  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 9999px; }
+  /* Scrollbar */
+  .scrollbar-thin::-webkit-scrollbar         { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track   { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb   { background: var(--color-border-default-strong); border-radius: 9999px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--color-gray); }
+
+  /* Button glint — layered shadow used by primary buttons (per buttons.md) */
+  .btn-glint {
+    box-shadow:
+      var(--shadow-xs),
+      inset var(--color-1-400) 0 6px 0 -5px,
+      var(--color-1-700) 0 4px 10px -5px;
+  }
 }
 
-/* ── Markdown render (Generated Brief) ──────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────────────
+ * Markdown render (Generated Brief)
+ * ────────────────────────────────────────────────────────────────────────── */
 
 .prose-llg {
   color: var(--color-body);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.625;
 }
-.prose-llg h1 { font-size: 20px; font-weight: 700; color: var(--color-heading); margin: 0 0 12px; line-height: 1.25; }
-.prose-llg h2 { font-size: 16px; font-weight: 600; color: var(--color-heading); margin: 20px 0 8px; padding-top: 12px; border-top: 1px solid var(--color-border); }
+.prose-llg h1 { font-size: 20px; font-weight: 600; color: var(--color-heading); margin: 0 0 12px; line-height: 1.25; }
+.prose-llg h2 { font-size: 16px; font-weight: 600; color: var(--color-heading); margin: 20px 0 8px; padding-top: 12px; border-top: 1px solid var(--color-border-default); }
 .prose-llg h2:first-child { padding-top: 0; border-top: 0; margin-top: 0; }
 .prose-llg h3 { font-size: 14px; font-weight: 600; color: var(--color-heading); margin: 14px 0 4px; }
 .prose-llg h4 { font-size: 13px; font-weight: 600; color: var(--color-heading); margin: 12px 0 4px; }
@@ -138,18 +311,21 @@ body {
   font-style: italic;
 }
 .prose-llg code {
-  background: var(--color-surface);
-  box-shadow: inset 1px 1px 2px var(--nm-shadow-dark), inset -1px -1px 2px var(--nm-shadow-light);
+  background: var(--color-neutral-tertiary-soft);
+  border: 1px solid var(--color-border-default);
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 12px;
-  color: var(--color-brand);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-fg-brand);
 }
-.prose-llg hr { border: 0; border-top: 1px solid var(--color-border); margin: 16px 0; }
-.prose-llg a  { color: var(--color-brand); text-decoration: underline; }
+.prose-llg hr { border: 0; border-top: 1px solid var(--color-border-default); margin: 16px 0; }
+.prose-llg a  { color: var(--color-fg-brand); text-decoration: underline; }
 .prose-llg a:hover { text-decoration: none; }
 
-/* ── Animations (slider-cascade-math.md §6) ─────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────────────
+ * Animations
+ * ────────────────────────────────────────────────────────────────────────── */
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }
@@ -167,7 +343,5 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cascading-number.is-pulsing {
-    animation: none;
-  }
+  .cascading-number.is-pulsing { animation: none; }
 }
