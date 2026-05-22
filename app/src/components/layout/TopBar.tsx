@@ -6,6 +6,7 @@ import { ShareButton } from "../ShareButton";
 import { NotificationBell } from "../NotificationBell";
 import { useAuth } from "../../lib/auth";
 import { useTheme } from "../../lib/theme";
+import { RingCentralConnect } from "../RingCentralConnect";
 import type { ProbeReport, TabId } from "../../types";
 
 // Opener: simplified prospecting tools only — no calculator or activity log
@@ -140,6 +141,9 @@ export function TopBar({ activeTab, onTabChange, callStatus, onCloseDeal, onLoad
                         {roleLabel}
                       </span>
                     )}
+                  </div>
+                  <div className="px-3 py-2 border-b border-[var(--color-border)]">
+                    <RingCentralConnect />
                   </div>
                   <button
                     onClick={() => {
