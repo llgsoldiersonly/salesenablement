@@ -362,6 +362,34 @@ export async function updateAssessmentContact(
   return true;
 }
 
+export interface LeadRecording {
+  id: string;
+  rc_call_log_id: string;
+  recording_uri: string | null;
+  content_type: string | null;
+  duration_seconds: number | null;
+  call_started_at: string | null;
+  call_direction: string | null;
+  caller_number: string | null;
+  callee_number: string | null;
+  transcript_text: string | null;
+}
+
+export async function listLeadRecordings(leadId: string): Promise<LeadRecording[]> {
+  const { data, error } = await supabase
+    .from("sales_call_recordings" as never)
+    .select(
+      "id, rc_call_log_id, recording_uri, content_type, duration_seconds, call_started_at, call_direction, caller_number, callee_number, transcript_text",
+    )
+    .eq("matched_lead_id", leadId)
+    .order("call_started_at", { ascending: false });
+  if (error) {
+    console.error("listLeadRecordings failed:", error.message);
+    return [];
+  }
+  return (data ?? []) as unknown as LeadRecording[];
+}
+
 export async function getLeadStatusHistory(
   leadId: string,
 ): Promise<LeadStatusHistoryRow[]> {

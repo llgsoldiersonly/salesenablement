@@ -353,6 +353,120 @@ export async function placeRingOut(
   return { ok: true, ringOutId: body.id, status: body.status?.callStatus ?? "InProgress" };
 }
 
+/* ── Call recordings (B4) ────────────────────────────────────────────── */
+
+interface RcCallLogRecord {
+  id: string;
+  sessionId?: string;
+  startTime?: string;
+  direction?: string;
+  duration?: number;
+  from?: { phoneNumber?: string };
+  to?: { phoneNumber?: string };
+  recording?: {
+    id: string;
+    uri?: string;
+    type?: string;
+    contentType?: string;
+    duration?: number;
+  };
+  transport?: string;
+}
+
+interface RcCallLogResponse {
+  records: RcCallLogRecord[];
+  paging: { totalElements: number };
+}
+
+/**
+ * Find recent calls for the given phone number and attach any that have a
+ * recording. Called on-demand from the lead drawer's "Refresh recordings"
+ * button. Returns the count of newly-attached recordings.
+ */
+export async function fetchAndPersistRecordingsForLead(
+  userId: string,
+  leadId: string,
+  assessmentId: string,
+  contactPhone: string,
+): Promise<{ ok: true; added: number; total: number } | { ok: false; error: string; hint?: string }> {
+  const creds = await getValidCredentials(userId);
+  if (!creds) return { ok: false, error: "RingCentral not connected." };
+  const last10 = normalizePhoneToLast10(contactPhone);
+  if (!last10) {
+    return { ok: false, error: "Lead has no usable contact phone." };
+  }
+
+  // RC's call-log query: filter by direction is awkward; easiest is to pull
+  // recent calls and filter client-side.
+  const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+  const url =
+    `${RC_SERVER_URL}/restapi/v1.0/account/~/extension/~/call-log` +
+    `?dateFrom=${encodeURIComponent(since)}&perPage=100&withRecording=true&view=Detailed`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${creds.accessToken}` } });
+  if (!res.ok) {
+    let hint: string | undefined;
+    if (res.status === 403) {
+      hint = "Make sure 'ReadCallLog' scope is granted, then disconnect + reconnect RingCentral.";
+    }
+    return { ok: false, error: `RC call-log ${res.status}: ${await res.text()}`, hint };
+  }
+  const body = (await res.json()) as RcCallLogResponse;
+
+  // Filter to calls involving this lead's phone (any direction)
+  const matching = body.records.filter((r) => {
+    if (!r.recording) return false;
+    const fromDigits = normalizePhoneToLast10(r.from?.phoneNumber ?? null);
+    const toDigits = normalizePhoneToLast10(r.to?.phoneNumber ?? null);
+    return fromDigits === last10 || toDigits === last10;
+  });
+
+  const supabase = serviceClient();
+  let added = 0;
+  for (const record of matching) {
+    const { error } = await supabase
+      .from("sales_call_recordings")
+      .upsert(
+        {
+          rc_call_log_id: record.id,
+          rc_recording_id: record.recording?.id,
+          rc_session_id: record.sessionId ?? null,
+          recording_uri: record.recording?.uri,
+          content_type: record.recording?.contentType ?? record.recording?.type ?? null,
+          duration_seconds: record.recording?.duration ?? record.duration ?? null,
+          call_started_at: record.startTime ?? null,
+          call_direction: record.direction ?? null,
+          caller_number: record.from?.phoneNumber ?? null,
+          callee_number: record.to?.phoneNumber ?? null,
+          fetched_by_user_id: userId,
+          matched_lead_id: leadId,
+          matched_assessment_id: assessmentId,
+        },
+        { onConflict: "rc_call_log_id", ignoreDuplicates: false },
+      );
+    if (!error) added++;
+  }
+  return { ok: true, added, total: matching.length };
+}
+
+/**
+ * Fetch a recording's audio bytes from RC. Returns the stream + headers.
+ * Used by the server-side proxy so the browser can play audio without
+ * holding access tokens.
+ */
+export async function fetchRecordingStream(
+  userId: string,
+  recordingUri: string,
+): Promise<{ ok: true; res: Response } | { ok: false; status: number; error: string }> {
+  const creds = await getValidCredentials(userId);
+  if (!creds) return { ok: false, status: 401, error: "RingCentral not connected." };
+  const res = await fetch(recordingUri, {
+    headers: { Authorization: `Bearer ${creds.accessToken}` },
+  });
+  if (!res.ok) return { ok: false, status: res.status, error: await res.text() };
+  return { ok: true, res };
+}
+
 /* ── SMS (B3 flip notification) ──────────────────────────────────────── */
 
 export interface SendSmsResult {

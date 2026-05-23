@@ -16,6 +16,7 @@ import {
 } from "./EditableField";
 import { CallButton } from "./CallButton";
 import { FlipDialog } from "./FlipDialog";
+import { RecordingsSection } from "./RecordingsSection";
 import { formatCents, leadDisplayName, leadLocation, relativeDays } from "./leadFormatters";
 
 interface Props {
@@ -264,6 +265,13 @@ export function LeadDetailDrawer({
             </DefList>
           </Section>
         )}
+
+        {/* Recordings (B4) */}
+        <RecordingsSection
+          leadId={lead.id}
+          assessmentId={lead.assessment_id}
+          contactPhone={lead.contact_phone}
+        />
 
         {/* Status history */}
         <Section title="Status history">
