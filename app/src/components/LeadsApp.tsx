@@ -3,6 +3,7 @@ import { useAuth } from "../lib/auth";
 import {
   LEAD_STATUS_LABEL,
   LEAD_STATUS_ORDER,
+  getLeadById,
   listLeads,
   setReadyForCloser,
   updateLead,
@@ -51,6 +52,31 @@ export function LeadsApp() {
   useEffect(() => {
     if (session) void refresh();
   }, [session, refresh]);
+
+  // Deep-link support: /leads?openLead=<id> auto-opens the drawer. Used by
+  // the IncomingCallToaster screen-pop. Also responds to the `llg:openLead`
+  // window event so the toaster can re-open without a full nav.
+  useEffect(() => {
+    if (!session) return;
+    const tryOpen = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("openLead");
+      if (!id) return;
+      const found = await getLeadById(id);
+      if (found) setActiveLead(found);
+      params.delete("openLead");
+      const qs = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + (qs ? `?${qs}` : ""),
+      );
+    };
+    void tryOpen();
+    const handler = () => void tryOpen();
+    window.addEventListener("llg:openLead", handler);
+    return () => window.removeEventListener("llg:openLead", handler);
+  }, [session]);
 
   // Persist view choice
   useEffect(() => {

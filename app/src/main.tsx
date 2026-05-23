@@ -5,6 +5,7 @@ import App from "./App";
 import { AuthProvider } from "./lib/auth";
 import { ThemeProvider } from "./lib/theme";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { IncomingCallToaster } from "./components/IncomingCallToaster";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -12,6 +13,7 @@ createRoot(document.getElementById("root")!).render(
       <ThemeProvider>
         <AuthProvider>
           <App />
+          <IncomingCallToaster />
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
