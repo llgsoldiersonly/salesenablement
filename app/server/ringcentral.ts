@@ -68,7 +68,12 @@ export function verifyState(state: string): { userId: string } | null {
  * SubscriptionWebhook for B1 webhooks, ReadCallLog for future B4 recording
  * attach. Add to the RC dev app's Permissions to make these grantable.
  */
-export const DEFAULT_RC_SCOPES = ["RingOut", "SubscriptionWebhook", "ReadCallLog"];
+export const DEFAULT_RC_SCOPES = [
+  "RingOut",
+  "SubscriptionWebhook",
+  "ReadCallLog",
+  "SMS",
+];
 
 /* ── OAuth URL builder ───────────────────────────────────────────────── */
 
@@ -346,6 +351,62 @@ export async function placeRingOut(
 
   const body = (await res.json()) as { id: string; status?: { callStatus?: string } };
   return { ok: true, ringOutId: body.id, status: body.status?.callStatus ?? "InProgress" };
+}
+
+/* ── SMS (B3 flip notification) ──────────────────────────────────────── */
+
+export interface SendSmsResult {
+  ok: true;
+  messageId: string;
+}
+export interface SendSmsError {
+  ok: false;
+  error: string;
+  hint?: string;
+}
+
+/**
+ * Send an SMS from the rep's RC account to a destination number. Used by the
+ * flip-to-closer flow: opener triggers a flip, this sends "Listen in on lead
+ * X" to the closer's phone.
+ */
+export async function sendSms(
+  fromUserId: string,
+  toNumber: string,
+  text: string,
+): Promise<SendSmsResult | SendSmsError> {
+  const creds = await getValidCredentials(fromUserId);
+  if (!creds) return { ok: false, error: "RingCentral not connected." };
+  if (!creds.fromNumber) {
+    return { ok: false, error: "No RC phone number on file. Reconnect RingCentral." };
+  }
+
+  const res = await fetch(
+    `${RC_SERVER_URL}/restapi/v1.0/account/~/extension/~/sms`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${creds.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: { phoneNumber: creds.fromNumber },
+        to: [{ phoneNumber: toNumber }],
+        text: text.slice(0, 1000),
+      }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    let hint: string | undefined;
+    if (res.status === 403) {
+      hint =
+        "Make sure the 'SMS' scope is granted in your RC dev app, then disconnect + reconnect RingCentral.";
+    }
+    return { ok: false, error: `RC SMS ${res.status}: ${body}`, hint };
+  }
+  const body = (await res.json()) as { id?: number | string };
+  return { ok: true, messageId: String(body.id ?? "") };
 }
 
 /* ── Webhook subscriptions (B1) ─────────────────────────────────────── */
