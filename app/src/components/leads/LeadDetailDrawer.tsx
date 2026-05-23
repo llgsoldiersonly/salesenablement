@@ -15,6 +15,7 @@ import {
   EditableCheckboxRow,
 } from "./EditableField";
 import { CallButton } from "./CallButton";
+import { FlipDialog } from "./FlipDialog";
 import { formatCents, leadDisplayName, leadLocation, relativeDays } from "./leadFormatters";
 
 interface Props {
@@ -113,10 +114,14 @@ export function LeadDetailDrawer({
           <StatusDropdown value={lead.status} onChange={onStatusChange} />
         </section>
 
-        {/* Flip Ready toggle */}
+        {/* Flip Ready + Live Flip controls */}
         <FlipReadySection
+          leadId={lead.id}
+          firmName={leadDisplayName(lead)}
           ready={lead.ready_for_closer}
           readyAt={lead.ready_for_closer_at}
+          flippedToCloserId={lead.flipped_to_closer_id}
+          lastFlipAt={lead.last_flip_at}
           onToggle={onToggleReadyForCloser}
           disabled={lead.status === "lost_lead" || lead.status === "signed"}
         />
@@ -321,15 +326,29 @@ export function LeadDetailDrawer({
 }
 
 interface FlipReadySectionProps {
+  leadId: string;
+  firmName: string;
   ready: boolean;
   readyAt: string | null;
+  flippedToCloserId: string | null;
+  lastFlipAt: string | null;
   onToggle: (next: boolean) => Promise<boolean>;
   disabled: boolean;
 }
 
-function FlipReadySection({ ready, readyAt, onToggle, disabled }: FlipReadySectionProps) {
+function FlipReadySection({
+  leadId,
+  firmName,
+  ready,
+  readyAt,
+  flippedToCloserId,
+  lastFlipAt,
+  onToggle,
+  disabled,
+}: FlipReadySectionProps) {
   const [saving, setSaving] = useState(false);
-  const handleClick = async () => {
+  const [flipOpen, setFlipOpen] = useState(false);
+  const handleToggleClick = async () => {
     if (saving || disabled) return;
     setSaving(true);
     try {
@@ -338,48 +357,84 @@ function FlipReadySection({ ready, readyAt, onToggle, disabled }: FlipReadySecti
       setSaving(false);
     }
   };
+  const alreadyFlipped = flippedToCloserId != null;
   return (
-    <section
-      className={[
-        "px-5 py-3 border-b border-[var(--color-border-default)] flex items-center justify-between gap-3",
-        ready ? "bg-brand-softer" : "",
-      ].join(" ")}
-    >
-      <div className="min-w-0 flex-1">
-        <p className="text-2xs uppercase tracking-wider text-body-subtle">Closer pickup</p>
-        <p className="text-sm mt-0.5">
-          {ready ? (
-            <>
-              <span className="text-fg-brand-strong font-medium">🚩 Ready for closer</span>
-              {readyAt && (
-                <span className="text-2xs text-body-subtle ml-2">
-                  ({relativeDays(readyAt)} ago)
-                </span>
-              )}
-            </>
-          ) : disabled ? (
-            <span className="text-body-subtle italic">Lead is closed; not pickable</span>
-          ) : (
-            <span className="text-body-subtle italic">Not yet queued for closer</span>
-          )}
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={() => void handleClick()}
-        disabled={saving || disabled}
+    <>
+      <section
         className={[
-          "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors",
-          "focus:outline-none focus:ring-4 focus:ring-brand-medium",
-          ready
-            ? "bg-neutral-secondary-medium text-body hover:bg-neutral-tertiary-medium border border-[var(--color-border-default)]"
-            : "bg-brand text-white hover:bg-brand-strong",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
+          "px-5 py-3 border-b border-[var(--color-border-default)] flex items-center justify-between gap-3 flex-wrap",
+          ready ? "bg-brand-softer" : "",
         ].join(" ")}
       >
-        {ready ? "Unmark" : "🚩 Mark ready"}
-      </button>
-    </section>
+        <div className="min-w-0 flex-1">
+          <p className="text-2xs uppercase tracking-wider text-body-subtle">Closer pickup</p>
+          <p className="text-sm mt-0.5">
+            {alreadyFlipped && lastFlipAt ? (
+              <>
+                <span className="text-fg-success-strong font-medium">📞 Flipped</span>
+                <span className="text-2xs text-body-subtle ml-2">
+                  ({relativeDays(lastFlipAt)} ago)
+                </span>
+              </>
+            ) : ready ? (
+              <>
+                <span className="text-fg-brand-strong font-medium">🚩 Ready for closer</span>
+                {readyAt && (
+                  <span className="text-2xs text-body-subtle ml-2">
+                    ({relativeDays(readyAt)} ago)
+                  </span>
+                )}
+              </>
+            ) : disabled ? (
+              <span className="text-body-subtle italic">Lead is closed; not pickable</span>
+            ) : (
+              <span className="text-body-subtle italic">Not yet queued for closer</span>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => void handleToggleClick()}
+            disabled={saving || disabled}
+            className={[
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-colors",
+              "focus:outline-none focus:ring-4 focus:ring-brand-medium",
+              ready
+                ? "bg-neutral-secondary-medium text-body hover:bg-neutral-tertiary-medium border border-[var(--color-border-default)]"
+                : "bg-neutral-primary-soft text-body border border-[var(--color-border-default)] hover:bg-neutral-secondary-medium",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+            ].join(" ")}
+          >
+            {ready ? "Unmark" : "🚩 Mark ready"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setFlipOpen(true)}
+            disabled={disabled}
+            className={[
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-semibold transition-colors",
+              "bg-brand text-white hover:bg-brand-strong btn-glint",
+              "focus:outline-none focus:ring-4 focus:ring-brand-medium",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+            ].join(" ")}
+            title="Send a flip SMS to a closer with this lead's deep link"
+          >
+            📞 Flip to closer
+          </button>
+        </div>
+      </section>
+      <FlipDialog
+        open={flipOpen}
+        leadId={leadId}
+        firmName={firmName}
+        onClose={() => setFlipOpen(false)}
+        onFlipped={() => {
+          // Caller's optimistic UI handles ready_for_closer; full state will
+          // arrive on next refresh. Nothing to do here.
+        }}
+      />
+    </>
   );
 }
 

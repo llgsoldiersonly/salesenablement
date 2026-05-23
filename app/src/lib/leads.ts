@@ -82,6 +82,9 @@ export interface Lead {
   signed_package: string | null;
   signed_value_cents: number | null;
   lost_reason: string | null;
+  last_flip_at: string | null;
+  flipped_to_closer_id: string | null;
+  flip_message_sent_at: string | null;
   source: string | null;
   created_at: string;
   updated_at: string;
@@ -251,6 +254,76 @@ export async function updateLead(
     return null;
   }
   return data as unknown as Lead;
+}
+
+/* ── Flip-to-closer (B3) ─────────────────────────────────────────────── */
+
+export interface AvailableCloser {
+  id: string;
+  full_name: string | null;
+  email: string;
+  rc_connected: boolean;
+}
+
+/**
+ * List closers + admins available to receive a flip. Returns those who have
+ * connected RingCentral (so we know we can SMS them).
+ */
+export async function listAvailableClosers(): Promise<AvailableCloser[]> {
+  const { data: profiles, error } = await supabase
+    .from("sales_profiles")
+    .select("id, full_name, email, role, active")
+    .in("role", ["closer", "admin"])
+    .eq("active", true);
+  if (error || !profiles) {
+    console.error("listAvailableClosers failed:", error?.message);
+    return [];
+  }
+  const { data: creds } = await supabase
+    .from("rc_user_credentials" as never)
+    .select("user_id, rc_main_number");
+  const credsArr = (creds ?? []) as unknown as Array<{
+    user_id: string;
+    rc_main_number: string | null;
+  }>;
+  const connectedSet = new Set(
+    credsArr.filter((c) => c.rc_main_number).map((c) => c.user_id),
+  );
+  const profilesArr = profiles as unknown as Array<{
+    id: string;
+    full_name: string | null;
+    email: string;
+  }>;
+  return profilesArr.map((p) => ({
+    id: p.id,
+    full_name: p.full_name,
+    email: p.email,
+    rc_connected: connectedSet.has(p.id),
+  }));
+}
+
+import { getAuthHeader } from "./authHeader.js";
+
+export interface FlipResult {
+  ok: boolean;
+  smsId?: string;
+  error?: string;
+  hint?: string;
+}
+
+/** Trigger the soft flip — SMS to closer + lead-row stamp. */
+export async function flipLead(leadId: string, closerId: string): Promise<FlipResult> {
+  const auth = await getAuthHeader();
+  const res = await fetch("/api/leads/flip", {
+    method: "POST",
+    headers: { ...auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ leadId, closerId }),
+  });
+  try {
+    return (await res.json()) as FlipResult;
+  } catch {
+    return { ok: false, error: `Server returned ${res.status}` };
+  }
 }
 
 export interface LeadStatusHistoryRow {
