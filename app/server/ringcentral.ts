@@ -538,9 +538,51 @@ interface RcTelephonySessionEvent {
 }
 
 /**
+ * Normalize a phone number to last-10 digits (US-style). Strips formatting,
+ * country code, etc. — good enough for matching domestic prospects.
+ */
+function normalizePhoneToLast10(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 7) return null;
+  return digits.slice(-10);
+}
+
+/**
+ * Find a lead whose underlying assessment has a contact_phone matching the
+ * given caller number (last-10 digits). Returns the most recently-updated
+ * matching lead, or null.
+ *
+ * Future polish: also try decision-maker phone numbers once that's a field.
+ */
+async function findLeadByCallerNumber(
+  callerNumber: string,
+): Promise<{ leadId: string; assessmentId: string } | null> {
+  const last10 = normalizePhoneToLast10(callerNumber);
+  if (!last10) return null;
+
+  const supabase = serviceClient();
+  const { data, error } = await supabase
+    .from("sales_assessments")
+    .select("id, sales_leads(id)")
+    .like("contact_phone_digits", `%${last10}`)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  const leadRows = (data as { id: string; sales_leads: Array<{ id: string }> | { id: string } | null }).sales_leads;
+  const leadId = Array.isArray(leadRows) ? leadRows[0]?.id : leadRows?.id;
+  if (!leadId) return null;
+  return { leadId, assessmentId: (data as { id: string }).id };
+}
+
+/**
  * Persist a single webhook event into sales_call_events. Extracts the key
  * fields from RC's nested payload so simple queries (e.g. "find all events
- * for caller X in the last hour") don't need JSON drilling.
+ * for caller X in the last hour") don't need JSON drilling. For inbound
+ * events, also attempts to match the caller to a lead and stamps
+ * matched_lead_id so the browser screen-pop has a target on first event.
  */
 export async function recordCallEvent(
   userId: string,
@@ -556,6 +598,19 @@ export async function recordCallEvent(
   const calleeNumber = firstParty?.to?.phoneNumber ?? null;
   const partyId = firstParty?.id ?? null;
 
+  // Match the prospect's number to a lead. For Inbound calls the prospect is
+  // `caller_number`; for Outbound (RingOut) it's `callee_number`.
+  const prospectNumber = direction === "Inbound" ? callerNumber : calleeNumber;
+  let matchedLeadId: string | null = null;
+  let matchedAssessmentId: string | null = null;
+  if (prospectNumber) {
+    const match = await findLeadByCallerNumber(prospectNumber);
+    if (match) {
+      matchedLeadId = match.leadId;
+      matchedAssessmentId = match.assessmentId;
+    }
+  }
+
   const supabase = serviceClient();
   const { error } = await supabase.from("sales_call_events").insert({
     user_id: userId,
@@ -567,6 +622,8 @@ export async function recordCallEvent(
     status,
     caller_number: callerNumber,
     callee_number: calleeNumber,
+    matched_lead_id: matchedLeadId,
+    matched_assessment_id: matchedAssessmentId,
     raw: payload as unknown as Record<string, unknown>,
   });
   if (error) console.error("[rc] recordCallEvent insert failed:", error.message);
