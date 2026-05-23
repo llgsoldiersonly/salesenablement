@@ -51,6 +51,51 @@ export interface DialResult {
   hint?: string;
 }
 
+/* ── Recordings ─────────────────────────────────────────────────────── */
+
+export interface CallRecording {
+  id: string;
+  rc_call_log_id: string;
+  recording_uri: string | null;
+  content_type: string | null;
+  duration_seconds: number | null;
+  call_started_at: string | null;
+  call_direction: string | null;
+  caller_number: string | null;
+  callee_number: string | null;
+  transcript_text: string | null;
+}
+
+export interface RefreshRecordingsResult {
+  ok: boolean;
+  added?: number;
+  total?: number;
+  error?: string;
+  hint?: string;
+}
+
+export async function refreshRecordingsForLead(
+  leadId: string,
+  assessmentId: string,
+  contactPhone: string,
+): Promise<RefreshRecordingsResult> {
+  const auth = await getAuthHeader();
+  const res = await fetch("/api/rc/recordings-refresh", {
+    method: "POST",
+    headers: { ...auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ leadId, assessmentId, contactPhone }),
+  });
+  try {
+    return (await res.json()) as RefreshRecordingsResult;
+  } catch {
+    return { ok: false, error: `Server returned ${res.status}` };
+  }
+}
+
+export function recordingStreamUrl(recordingId: string): string {
+  return `/api/rc/recording-stream?recordingId=${encodeURIComponent(recordingId)}`;
+}
+
 /** Trigger a 2-leg RingOut. Server returns once RC has accepted the request. */
 export async function dialPhone(to: string, leadId?: string): Promise<DialResult> {
   const auth = await getAuthHeader();
