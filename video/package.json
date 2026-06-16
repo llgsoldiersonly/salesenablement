@@ -1,0 +1,20 @@
+{
+  "name": "legal-leads-group-video",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "npx remotion studio",
+    "build": "npx remotion render LLGVideo out/landscape.mp4 --gl=angle",
+    "build-vertical": "npx remotion render LLGVideoVertical out/vertical.mp4 --gl=angle"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "^4.0.257"
+  },
+  "devDependencies": {
+    "@remotion/cli": "^4.0.257",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.4.5"
+  }
+}
